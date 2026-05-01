@@ -12,8 +12,10 @@ export const usePolls = () => {
 export const usePoll = (id: string) => {
     return useQuery({
         queryKey: ["poll", id],
-        queryFn: () => api.getPollById(id), // Updated from getPoll to getPollById
+        queryFn: () => api.getPollById(id),
         enabled: !!id,
+        refetchInterval: 5000, // Refetch every 5 seconds for "live" effect
+        refetchIntervalInBackground: true,
     });
 };
 
