@@ -12,7 +12,7 @@ export const usePolls = () => {
 export const usePoll = (id: string) => {
     return useQuery({
         queryKey: ["poll", id],
-        queryFn: () => api.getPoll(id),
+        queryFn: () => api.getPollById(id), // Updated from getPoll to getPollById
         enabled: !!id,
     });
 };
@@ -30,8 +30,9 @@ export const useCreatePoll = () => {
 export const useCastVote = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) =>
-            api.castVote(pollId, optionId),
+        // Updated mutationFn to accept 3 arguments via an object
+        mutationFn: ({ pollId, optionId, userId }: { pollId: string; optionId: string; userId: string }) =>
+            api.castVote(pollId, optionId, userId),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["polls"] });
             queryClient.invalidateQueries({ queryKey: ["poll", variables.pollId] });
