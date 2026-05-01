@@ -4,11 +4,67 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Users, Radio, Plus, Share2, CheckCircle, MessageSquare, UserPlus } from "lucide-react";
+import {
+  BarChart3,
+  Users,
+  Radio,
+  Plus,
+  Share2,
+  CheckCircle,
+  MessageSquare,
+  UserPlus,
+  ArrowUpRight,
+  Clock,
+  Inbox
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePolls } from "@/hooks/use-polls";
+import { formatDistanceToNow, isAfter } from "date-fns";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const { data: polls, isLoading } = usePolls();
+
+  // 1. Filter polls for the current user
+  const userPolls = polls?.filter(p => p.creatorId === user?.id) || [];
+  const activePolls = userPolls.filter(p => p.status === "active");
+
+  // 2. Calculate Analytics
+  const totalVotesReceived = userPolls.reduce((sum, p) => sum + p.totalVotes, 0);
+  const pollsCreated = userPolls.length;
+  const activeCount = activePolls.length;
+
+  // 3. Derived Recent Activity (Mocking activity based on existing user polls)
+  const recentActivity = userPolls
+    .slice(0, 4)
+    .map(p => ({
+      icon: UserPlus,
+      text: `New activity on "${p.title}"`,
+      time: formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })
+    }));
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar variant="app" />
+        <main className="container mx-auto px-6 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3 mb-8">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Skeleton className="lg:col-span-2 h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -17,7 +73,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-6 py-8">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Your Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground">Welcome back, {user?.name}!</h1>
             <p className="mt-1 text-muted-foreground">Manage your active polls and track results in real-time.</p>
           </div>
           <Button asChild>
@@ -25,79 +81,140 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-foreground">Recent Polls</h2>
+        {/* Stats Section */}
+        <div className="mt-8 grid gap-6 sm:grid-cols-3">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
+                <Badge variant="secondary" className="text-success bg-success/10 border-0">Live</Badge>
+              </div>
+              <div className="mt-4">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Polls Created</p>
+                <h3 className="text-3xl font-bold text-foreground">{pollsCreated}</h3>
+              </div>
+            </CardContent>
+          </Card>
 
-            {isLoading ? (
-              [1, 2, 3].map((i) => (
-                <Card key={i} className="w-full">
-                  <CardContent className="p-6">
-                    <Skeleton className="h-6 w-1/3 mb-4" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </CardContent>
-                </Card>
-              ))
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <Badge variant="secondary" className="text-success bg-success/10 border-0">Updating</Badge>
+              </div>
+              <div className="mt-4">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Votes Received</p>
+                <h3 className="text-3xl font-bold text-foreground">{totalVotesReceived.toLocaleString()}</h3>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Radio className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Active Polls</p>
+                <h3 className="text-3xl font-bold text-foreground">{activeCount}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-3">
+          {/* Active Polls List */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Active Polls</h2>
+              <Link to="/profile" className="text-sm font-medium text-primary hover:underline">View All</Link>
+            </div>
+
+            {activePolls.length > 0 ? (
+              <div className="grid gap-4">
+                {activePolls.map((poll) => (
+                  <Card key={poll.id} className="group transition-all hover:border-primary/50">
+                    <CardContent className="flex items-center justify-between p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-primary group-hover:bg-primary/10">
+                          <CheckCircle className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-foreground">{poll.title}</h4>
+                          <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {poll.totalVotes} votes</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Ends {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/poll/${poll.id}/results`}><Share2 className="mr-2 h-3.5 w-3.5" /> Share</Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                          <Link to={`/poll/${poll.id}/results`}>Results <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
-              polls?.map((poll) => (
-                <Card key={poll.id} className="overflow-hidden transition-all hover:border-primary/50 hover:shadow-md">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col sm:flex-row">
-                      <div className="flex flex-1 flex-col p-6">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={poll.status === "active" ? "default" : "secondary"} className={poll.status === "active" ? "bg-success/10 text-success hover:bg-success/20 border-0" : ""}>
-                            {poll.status.toUpperCase()}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{poll.category || "General"}</span>
-                        </div>
-                        <h3 className="mt-3 text-xl font-bold text-foreground">{poll.title}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{poll.description}</p>
-
-                        <div className="mt-6 flex items-center gap-6">
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span className="font-medium text-foreground">{poll.totalVotes}</span> votes
-                          </div>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>Ends in 3 days</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col justify-center border-t border-border bg-muted/30 p-4 sm:w-48 sm:border-l sm:border-t-0">
-                        <Button asChild variant="outline" size="sm" className="w-full">
-                          <Link to={`/poll/${poll.id}/results`}><BarChart3 className="mr-2 h-4 w-4" />Results</Link>
-                        </Button>
-                        <Button asChild size="sm" className="mt-2 w-full">
-                          <Link to={`/poll/${poll.id}`}><Share2 className="mr-2 h-4 w-4" />Share</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              <Card className="border-dashed py-12">
+                <CardContent className="flex flex-col items-center justify-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                    <Inbox className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold">No active polls</h3>
+                  <p className="text-muted-foreground mb-6">Create your first poll to start gathering feedback.</p>
+                  <Button asChild>
+                    <Link to="/create-poll"><Plus className="mr-2 h-4 w-4" /> Create Poll</Link>
+                  </Button>
+                </CardContent>
+              </Card>
             )}
           </div>
 
+          {/* Activity Feed */}
           <div className="space-y-6">
+            <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
             <Card>
-              <CardHeader><CardTitle className="text-lg">Activity Feed</CardTitle></CardHeader>
-              <CardContent className="space-y-5">
-                {[
-                  { icon: CheckCircle, text: 'Poll "Design Feedback" closed', time: "5 hours ago" },
-                  { icon: MessageSquare, text: "New comment on your poll", time: "Yesterday" },
-                ].map((a, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
-                      <a.icon className="h-4 w-4 text-accent-foreground" />
+              <CardContent className="grid gap-6 p-6">
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((a, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
+                        <a.icon className="h-4 w-4 text-accent-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{a.text}</p>
+                        <p className="text-xs text-muted-foreground">{a.time}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{a.text}</p>
-                      <p className="text-xs text-muted-foreground">{a.time}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center">No recent activity found.</p>
+                )}
+                <Button variant="ghost" size="sm" className="w-full text-primary" asChild>
+                  <Link to="/profile">See all activity</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-primary text-primary-foreground">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold">Pro Analytics</h3>
+                <p className="mt-1 text-sm opacity-80">Get detailed demographic insights for all your active polls.</p>
+                <Button variant="secondary" className="mt-4 w-full">Upgrade Now</Button>
               </CardContent>
             </Card>
           </div>
