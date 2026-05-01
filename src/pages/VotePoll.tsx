@@ -1,19 +1,46 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, EyeOff, Users, CheckCircle, Vote } from "lucide-react";
-
-const options = [
-  { id: "1", title: "Escape Room", desc: "Challenging puzzles and teamwork" },
-  { id: "2", title: "Bowling Night", desc: "Casual fun with food and drinks" },
-  { id: "3", title: "Nature Hiking", desc: "Outdoor adventure and fresh air" },
-  { id: "4", title: "Cooking Class", desc: "Learn new recipes together" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { Clock, EyeOff, Users, CheckCircle, Vote as VoteIcon } from "lucide-react";
+import { usePoll, useCastVote } from "@/hooks/use-polls";
+import { toast } from "sonner";
 
 const VotePoll = () => {
-  const [selected, setSelected] = useState("1");
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+
+  const { data: poll, isLoading } = usePoll(id || "");
+  const voteMutation = useCastVote();
+
+  const handleVote = async () => {
+    if (!id || !selectedOption) return;
+
+    try {
+      await voteMutation.mutateAsync({ pollId: id, optionId: selectedOption });
+      toast.success("Vote cast successfully!");
+      navigate(`/poll/${id}/results`);
+    } catch (error) {
+      toast.error("Failed to cast vote.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar variant="app" />
+        <main className="container mx-auto flex justify-center px-6 py-12">
+          <Card className="w-full max-w-2xl p-8"><Skeleton className="h-64 w-full" /></Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (!poll) return <div className="text-center py-20">Poll not found.</div>;
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,55 +50,54 @@ const VotePoll = () => {
         <Card className="w-full max-w-2xl">
           <CardContent className="p-8 text-center">
             <Badge variant="outline" className="mb-4">
-              <Users className="mr-1 h-3 w-3" /> TEAM FEEDBACK
+              <Users className="mr-1 h-3 w-3" /> {poll.category || "PUBLIC POLL"}
             </Badge>
             <h1 className="text-2xl font-bold text-foreground md:text-3xl">
-              What is our next team building activity?
+              {poll.title}
             </h1>
-            <p className="mt-2 text-muted-foreground">Select one option to cast your vote</p>
+            <p className="mt-2 text-muted-foreground">{poll.description}</p>
 
             <div className="mt-8 space-y-3 text-left">
-              {options.map((opt) => (
+              {poll.options.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => setSelected(opt.id)}
-                  className={`flex w-full items-center justify-between rounded-lg border-2 p-4 transition-colors ${
-                    selected === opt.id
-                      ? "border-primary bg-accent"
-                      : "border-border hover:border-muted-foreground/30"
-                  }`}
+                  onClick={() => setSelectedOption(opt.id)}
+                  className={`flex w-full items-center justify-between rounded-lg border-2 p-4 transition-all ${selectedOption === opt.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`h-5 w-5 rounded-full border-2 ${
-                      selected === opt.id ? "border-primary bg-primary" : "border-muted-foreground/40"
-                    } flex items-center justify-center`}>
-                      {selected === opt.id && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                    <div className={`h-5 w-5 rounded-full border-2 ${selectedOption === opt.id ? "border-primary bg-primary" : "border-muted-foreground/40"
+                      } flex items-center justify-center`}>
+                      {selectedOption === opt.id && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
                     </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{opt.title}</p>
-                      <p className="text-sm text-muted-foreground">{opt.desc}</p>
-                    </div>
+                    <span className="font-semibold text-foreground">{opt.text}</span>
                   </div>
-                  <CheckCircle className={`h-5 w-5 ${selected === opt.id ? "text-primary" : "text-muted"}`} />
+                  <CheckCircle className={`h-5 w-5 ${selectedOption === opt.id ? "text-primary" : "text-transparent"}`} />
                 </button>
               ))}
             </div>
 
-            <Button className="mt-8 w-full" size="lg">
-              <Vote className="mr-2 h-4 w-4" /> Cast Your Vote
+            <Button
+              className="mt-8 w-full"
+              size="lg"
+              disabled={!selectedOption || voteMutation.isPending}
+              onClick={handleVote}
+            >
+              <VoteIcon className="mr-2 h-4 w-4" />
+              {voteMutation.isPending ? "Casting Vote..." : "Cast Your Vote"}
             </Button>
 
             <div className="mt-6 flex items-center justify-center gap-6 border-t border-border pt-6 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Ends in 2 days</span>
-              <span className="flex items-center gap-1"><EyeOff className="h-4 w-4" /> Results hidden until closed</span>
+              <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Active</span>
+              <span className="flex items-center gap-1">
+                <EyeOff className="h-4 w-4" /> {poll.visibility === 'private' ? 'Private results' : 'Public results'}
+              </span>
             </div>
           </CardContent>
         </Card>
       </main>
-
-      <footer className="py-8 text-center text-sm text-muted-foreground">
-        © 2024 VoteSphere. Built for seamless decision making.
-      </footer>
     </div>
   );
 };
