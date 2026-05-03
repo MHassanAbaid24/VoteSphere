@@ -1,74 +1,85 @@
 import { Poll } from "@/types";
+import { apiClient } from "./httpClient";
 
-// Simulation delay for realistic UX
-const sleep = (ms: number) => new Uint8Array(new ArrayBuffer(ms)).fill(0).map(() => Math.random()).filter(() => false).length || new Promise(resolve => setTimeout(resolve, ms));
-
-const POLLS_KEY = "votesphere_polls";
-const USER_VOTES_KEY = "votesphere_user_votes";
-
-// Seed data if localStorage is empty
-const seedData: Poll[] = [
-    {
-        id: "demo-1",
-        creatorId: "system",
-        title: "Favorite Web Framework in 2024",
-        description: "Which framework are you most excited to use for your next project?",
-        options: [
-            { id: "opt-1", text: "React / Next.js", votes: 120 },
-            { id: "opt-2", text: "Vue / Nuxt", votes: 45 },
-            { id: "opt-3", text: "Svelte / SvelteKit", votes: 30 },
-            { id: "opt-4", text: "Angular", votes: 15 },
-        ],
-        totalVotes: 210,
-        status: "active",
-        visibility: "public",
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-];
+const mapPoll = (p: any): Poll => ({
+  id: p.id,
+  creatorId: p.creatorId,
+  title: p.title,
+  description: p.description,
+  options: p.questions?.[0]?.options?.map((opt: any) => ({
+    id: opt.id,
+    text: opt.text,
+    votes: opt.votes || 0,
+  })) || [],
+  status: p.status?.toLowerCase() === 'active' ? 'active' : 'closed',
+  visibility: p.visibility?.toLowerCase() === 'public' ? 'public' : 'private',
+  createdAt: p.createdAt,
+  expiresAt: p.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  totalVotes: p.totalVotes || 0,
+  category: p.category,
+});
 
 export const api = {
     // --- Poll Management ---
 
     getPolls: async (): Promise<Poll[]> => {
-        await sleep(600);
-        const data = localStorage.getItem(POLLS_KEY);
-        if (!data) {
-            localStorage.setItem(POLLS_KEY, JSON.stringify(seedData));
-            return seedData;
+        try {
+            const res = await apiClient.get("/v1/polls");
+            if (res.data?.success && Array.isArray(res.data.data)) {
+                return res.data.data.map(mapPoll);
+            }
+            return [];
+        } catch (err) {
+            console.error("Error fetching polls:", err);
+            return [];
         }
-        return JSON.parse(data);
     },
 
     getPollById: async (id: string): Promise<Poll | null> => {
-        await sleep(400);
-        const polls = await api.getPolls();
-        return polls.find((p) => p.id === id) || null;
+        try {
+            const res = await apiClient.get(`/v1/polls/${id}`);
+            if (res.data?.success && res.data?.data) {
+                return mapPoll(res.data.data);
+            }
+            return null;
+        } catch (err) {
+            console.error(`Error fetching poll ${id}:`, err);
+            return null;
+        }
     },
 
     createPoll: async (pollData: Omit<Poll, "id" | "createdAt" | "totalVotes">): Promise<Poll> => {
-        await sleep(1000);
-        const polls = await api.getPolls();
+        try {
+            const res = await apiClient.post("/v1/polls", {
+                title: pollData.title,
+                description: pollData.description,
+                visibility: pollData.visibility?.toUpperCase() || "PUBLIC",
+                status: "ACTIVE",
+                category: pollData.category,
+                expiresAt: pollData.expiresAt,
+                questions: [
+                    {
+                        text: "Default Question",
+                        options: pollData.options.map(opt => ({ text: opt.text }))
+                    }
+                ]
+            });
 
-        const newPoll: Poll = {
-            ...pollData,
-            id: Math.random().toString(36).substr(2, 9),
-            createdAt: new Date().toISOString(),
-            totalVotes: 0,
-            options: pollData.options.map(opt => ({ ...opt, votes: 0 }))
-        };
-
-        const updatedPolls = [newPoll, ...polls];
-        localStorage.setItem(POLLS_KEY, JSON.stringify(updatedPolls));
-        return newPoll;
+            if (res.data?.success && res.data?.data) {
+                return mapPoll(res.data.data);
+            }
+            throw new Error(res.data?.error?.message || "Failed to create poll");
+        } catch (err: any) {
+            console.error("Error creating poll:", err);
+            throw new Error(err.response?.data?.error?.message || err.message || "Failed to create poll");
+        }
     },
 
     // --- Voting Logic ---
 
     castVote: async (pollId: string, optionId: string, userId: string): Promise<void> => {
-        await sleep(800);
         const polls = await api.getPolls();
-        const userVotes = JSON.parse(localStorage.getItem(USER_VOTES_KEY) || "{}");
+        const userVotes = JSON.parse(localStorage.getItem("votesphere_user_votes") || "{}");
 
         // De-duplication check
         if (userVotes[userId]?.includes(pollId)) {
@@ -81,21 +92,16 @@ export const api = {
         const option = polls[pollIndex].options.find((o) => o.id === optionId);
         if (!option) throw new Error("Option not found.");
 
-        // Increment votes
         option.votes += 1;
         polls[pollIndex].totalVotes += 1;
 
-        // Update Polls
-        localStorage.setItem(POLLS_KEY, JSON.stringify(polls));
-
-        // Update User Vote Registry
         if (!userVotes[userId]) userVotes[userId] = [];
         userVotes[userId].push(pollId);
-        localStorage.setItem(USER_VOTES_KEY, JSON.stringify(userVotes));
+        localStorage.setItem("votesphere_user_votes", JSON.stringify(userVotes));
     },
 
     hasVoted: async (pollId: string, userId: string): Promise<boolean> => {
-        const userVotes = JSON.parse(localStorage.getItem(USER_VOTES_KEY) || "{}");
+        const userVotes = JSON.parse(localStorage.getItem("votesphere_user_votes") || "{}");
         return userVotes[userId]?.includes(pollId) || false;
     },
 
