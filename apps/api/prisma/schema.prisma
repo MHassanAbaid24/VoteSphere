@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  emailVerified   Boolean   @default(false)
+  passwordHash    String?   // null for OAuth-only accounts
+  avatarUrl       String?
+  role            UserRole  @default(USER)
+  isPremium       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // soft delete
+
+  // Relations
+  polls           Poll[]
+  votes           Vote[]
+  notifications   Notification[]
+  refreshTokens   RefreshToken[]
+  oauthAccounts   OAuthAccount[]
+  preferences     UserPreferences?
+  demographicInfo UserDemographic?
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  PREMIUM
+  ADMIN
+}
+
+model OAuthAccount {
+  id             String   @id @default(cuid())
+  userId         String
+  provider       String   // "google" | "github"
+  providerUserId String
+  accessToken    String?
+  refreshToken   String?
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique // hashed in DB
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model UserPreferences {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  categories          String[] // interested categories
+  emailNotifications  Boolean  @default(true)
+  pushNotifications   Boolean  @default(false)
+  privacyLevel        String   @default("public") // "public" | "private"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model UserDemographic {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  ageRange  String?  // "18-24" | "25-34" etc — user-provided, optional
+  country   String?
+  gender    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_demographics")
+}
+
+// ─────────────────────────────────────────
+// POLLS
+// ─────────────────────────────────────────
+
+model Poll {
+  id          String      @id @default(cuid())
+  creatorId   String
+  title       String
+  description String
+  coverImage  String?     // S3 URL
+  status      PollStatus  @default(DRAFT)
+  visibility  Visibility  @default(PUBLIC)
+  category    String?
+  tags        String[]
+  totalVotes  Int         @default(0) // denormalized counter
+  expiresAt   DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?   // soft delete
+
+  // Relations
+  creator       User           @relation(fields: [creatorId], references: [id])
+  questions     Question[]
+  votes         Vote[]
+  notifications Notification[]
+
+  @@index([creatorId])
+  @@index([status, visibility])
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+  @@index([totalVotes(sort: Desc)])
+  @@map("polls")
+}
+
+enum PollStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  pollId      String
+  text        String
+  description String?
+  order       Int      // for ordering multiple questions
+  required    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  poll    Poll         @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   Vote[]
+
+  @@index([pollId])
+  @@map("questions")
+}
+
+model PollOption {
+  id         String   @id @default(cuid())
+  questionId String
+  text       String
+  order      Int
+  votes      Int      @default(0) // denormalized counter
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  voteRecords Vote[]
+
+  @@index([questionId])
+  @@map("poll_options")
+}
+
+// ─────────────────────────────────────────
+// VOTES
+// ─────────────────────────────────────────
+
+model Vote {
+  id         String   @id @default(cuid())
+  pollId     String
+  questionId String
+  optionId   String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  poll     Poll       @relation(fields: [pollId], references: [id])
+  question Question   @relation(fields: [questionId], references: [id])
+  option   PollOption @relation(fields: [optionId], references: [id])
+  user     User       @relation(fields: [userId], references: [id])
+
+  // A user can only vote once per question in a poll
+  @@unique([userId, questionId])
+  @@index([pollId])
+  @@index([userId])
+  @@index([optionId])
+  @@map("votes")
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  pollId    String?
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poll Poll? @relation(fields: [pollId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  VOTE_RECEIVED
+  POLL_EXPIRING
+  POLL_EXPIRED
+  COMMENT_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+  PREMIUM_INSIGHT_READY
+}
+
+// ─────────────────────────────────────────
+// CMS / STATIC CONTENT
+// ─────────────────────────────────────────
+
+model ContentPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique // "about-us" | "privacy-policy" | "terms-of-service"
+  title     String
+  body      String   // Markdown or HTML
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("content_pages")
+}
