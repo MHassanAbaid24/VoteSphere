@@ -21,5 +21,8 @@
     "prisma": "^5.10.0",
     "@types/cors": "^2.8.17",
     "typescript": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
   }
 }
