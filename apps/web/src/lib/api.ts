@@ -107,14 +107,15 @@ export const api = {
     // --- Statistics Helpers ---
 
     getGlobalStats: async () => {
-        const polls = await api.getPolls();
-        const totalVotes = polls.reduce((sum, p) => sum + p.totalVotes, 0);
-        const activePolls = polls.filter(p => p.status === "active").length;
-
-        return {
-            totalPolls: polls.length,
-            totalVotes,
-            activePolls
-        };
+        try {
+            const res = await apiClient.get("/v1/analytics/global");
+            if (res.data?.success && res.data?.data) {
+                return res.data.data;
+            }
+            return { totalPolls: 0, totalVotes: 0, activePolls: 0 };
+        } catch (err) {
+            console.error("Error fetching global stats:", err);
+            return { totalPolls: 0, totalVotes: 0, activePolls: 0 };
+        }
     }
 };
