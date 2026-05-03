@@ -29,3 +29,4 @@ dist-ssr
 *.env
 .gitignore
 docker-compose.yml
+.turbo

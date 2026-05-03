@@ -9,6 +9,7 @@ prisma.$use(async (params, next) => {
   if (modelsWithSoftDelete.includes(params.model!)) {
     if (params.action === 'findMany' || params.action === 'findFirst') {
       // Automatically filter out soft-deleted records
+      params.args = params.args || {};
       params.args.where = { ...params.args.where, deletedAt: null };
     }
   }

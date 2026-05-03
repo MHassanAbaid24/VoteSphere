@@ -41,8 +41,8 @@ const VotePoll = () => {
 
       toast.success("Your vote has been counted!");
       navigate(`/poll/${id}/results`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to cast vote.");
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Failed to cast vote.");
     }
   };
 

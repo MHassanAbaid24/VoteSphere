@@ -20,7 +20,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Determine where to send the user after login
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const from = (location.state as unknown as { from?: { pathname?: string } })?.from?.pathname || "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
