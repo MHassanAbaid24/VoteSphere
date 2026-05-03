@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { setCookie, getCookie } from 'hono/cookie';
 import { ZodIssue } from 'zod';
-import { RegisterSchema, LoginSchema } from './auth.schema';
-import { registerUser, loginUser, refreshUserSession, logoutUser } from './auth.service';
+import { RegisterSchema, LoginSchema, VerifyEmailSchema, ResendVerificationSchema } from './auth.schema';
+import { registerUser, loginUser, refreshUserSession, logoutUser, verifyEmail, resendVerification } from './auth.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { env } from '../../config/env';
 import { prisma } from '../../config/database';
@@ -230,4 +230,88 @@ authRouter.get('/me', authMiddleware, async (c) => {
       },
     },
   });
+});
+
+// POST /verify-email
+authRouter.post('/verify-email', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = VerifyEmailSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input data',
+            details: parsed.error.issues.map((i: ZodIssue) => ({ field: i.path.join('.'), message: i.message })),
+          },
+        },
+        400
+      );
+    }
+
+    await verifyEmail(parsed.data.token);
+
+    return c.json({
+      success: true,
+      data: {
+        message: 'Email successfully verified.',
+      },
+    });
+  } catch (err: unknown) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: (err as Error).message,
+        },
+      },
+      400
+    );
+  }
+});
+
+// POST /resend-verification
+authRouter.post('/resend-verification', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = ResendVerificationSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input data',
+            details: parsed.error.issues.map((i: ZodIssue) => ({ field: i.path.join('.'), message: i.message })),
+          },
+        },
+        400
+      );
+    }
+
+    await resendVerification(parsed.data.email);
+
+    return c.json({
+      success: true,
+      data: {
+        message: 'Verification email resent.',
+      },
+    });
+  } catch (err: unknown) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: (err as Error).message,
+        },
+      },
+      400
+    );
+  }
 });

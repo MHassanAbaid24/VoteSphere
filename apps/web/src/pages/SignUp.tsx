@@ -28,11 +28,11 @@ const SignUp = () => {
 
     setIsLoading(true);
     try {
-      await signup(name, email);
+      await signup(name, email, password);
       toast.success("Account created successfully!");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Failed to create account");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }

@@ -66,6 +66,17 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
     },
   });
 
+  // Generate Email Verification Token (64-byte random string)
+  const verificationTokenString = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      email: user.email,
+      token: verificationTokenString,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    },
+  });
+
   return {
     accessToken,
     refreshToken: refreshTokenString,
@@ -189,5 +200,66 @@ export const logoutUser = async (tokenString: string): Promise<void> => {
   await prisma.refreshToken.updateMany({
     where: { token: tokenString },
     data: { revoked: true },
+  });
+};
+
+/**
+ * Verify a user's email using the token
+ */
+export const verifyEmail = async (token: string): Promise<void> => {
+  const storedToken = await prisma.emailVerificationToken.findFirst({
+    where: { token, usedAt: null },
+  });
+
+  if (!storedToken || storedToken.expiresAt < new Date()) {
+    throw new Error('Invalid or expired verification token');
+  }
+
+  // Find user and verify them
+  const user = await prisma.user.findFirst({
+    where: { email: storedToken.email },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true },
+  });
+
+  // Mark token as used
+  await prisma.emailVerificationToken.update({
+    where: { id: storedToken.id },
+    data: { usedAt: new Date() },
+  });
+};
+
+/**
+ * Resend email verification token
+ */
+export const resendVerification = async (email: string): Promise<void> => {
+  const user = await prisma.user.findFirst({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (user.emailVerified) {
+    throw new Error('Email is already verified');
+  }
+
+  // Generate new token
+  const verificationTokenString = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      email: user.email,
+      token: verificationTokenString,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    },
   });
 };

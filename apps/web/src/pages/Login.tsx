@@ -31,11 +31,11 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      await login(email);
+      await login(email, password);
       toast.success("Welcome back!");
       navigate(from, { replace: true });
-    } catch (error) {
-      toast.error("Invalid email or password");
+    } catch (error: any) {
+      toast.error(error.message || "Invalid email or password");
     } finally {
       setIsLoading(false);
     }

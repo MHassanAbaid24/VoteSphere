@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
+import { apiClient } from "@/lib/httpClient";
+import { tokenStore } from "@/lib/tokenStore";
 
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string) => Promise<void>;
-    signup: (name: string, email: string) => Promise<void>;
+    login: (email: string, password?: string) => Promise<void>;
+    signup: (name: string, email: string, password?: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -17,40 +19,59 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Check for persisted session
-        const savedUser = localStorage.getItem("votesphere_user");
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
-        }
-        setIsLoading(false);
+        // Try to restore the session using silent refresh on application mount
+        const initAuth = async () => {
+            try {
+                // Call /v1/auth/refresh to rotate/get a new token
+                const res = await apiClient.post("/v1/auth/refresh");
+                const token = res.data?.data?.accessToken;
+                if (token) {
+                    tokenStore.set(token);
+                    // Fetch user info with the newly obtained access token
+                    const meRes = await apiClient.get("/v1/auth/me");
+                    if (meRes.data?.success && meRes.data?.data?.user) {
+                        setUser(meRes.data.data.user);
+                    }
+                }
+            } catch (err) {
+                // If silent refresh fails, clear tokenStore
+                tokenStore.clear();
+                setUser(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initAuth();
     }, []);
 
-    const login = async (email: string) => {
-        // Mock authentication logic
-        const mockUser: User = {
-            id: "user-" + Math.random().toString(36).substr(2, 4),
-            name: email.split("@")[0],
-            email: email,
-            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-        };
-        localStorage.setItem("votesphere_user", JSON.stringify(mockUser));
-        setUser(mockUser);
+    const login = async (email: string, password?: string) => {
+        const res = await apiClient.post("/v1/auth/login", { email, password });
+        if (res.data?.success && res.data?.data?.accessToken) {
+            tokenStore.set(res.data.data.accessToken);
+            setUser(res.data.data.user);
+        } else {
+            throw new Error(res.data?.error?.message || "Login failed");
+        }
     };
 
-    const signup = async (name: string, email: string) => {
-        const mockUser: User = {
-            id: "user-" + Math.random().toString(36).substr(2, 4),
-            name,
-            email,
-            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-        };
-        localStorage.setItem("votesphere_user", JSON.stringify(mockUser));
-        setUser(mockUser);
+    const signup = async (name: string, email: string, password?: string) => {
+        const res = await apiClient.post("/v1/auth/register", { name, email, password });
+        if (res.data?.success && res.data?.data?.accessToken) {
+            tokenStore.set(res.data.data.accessToken);
+            setUser(res.data.data.user);
+        } else {
+            throw new Error(res.data?.error?.message || "Failed to create account");
+        }
     };
 
-    const logout = () => {
-        localStorage.removeItem("votesphere_user");
-        setUser(null);
+    const logout = async () => {
+        try {
+            await apiClient.post("/v1/auth/logout");
+        } finally {
+            tokenStore.clear();
+            setUser(null);
+        }
     };
 
     return (
