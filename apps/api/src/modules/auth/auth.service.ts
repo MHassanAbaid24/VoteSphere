@@ -3,6 +3,7 @@ import { hashPassword, verifyPassword } from '../../lib/password';
 import { sign } from 'hono/jwt';
 import { env } from '../../config/env';
 import { RegisterInput, LoginInput } from './auth.schema';
+import { sendVerificationEmail } from '../../lib/mailer';
 
 export interface AuthResult {
   accessToken: string;
@@ -76,6 +77,8 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     },
   });
+
+  await sendVerificationEmail(user.email, verificationTokenString);
 
   return {
     accessToken,
@@ -262,4 +265,6 @@ export const resendVerification = async (email: string): Promise<void> => {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     },
   });
+
+  await sendVerificationEmail(user.email, verificationTokenString);
 };

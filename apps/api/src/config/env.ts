@@ -10,6 +10,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('supersecret-default-jwt-secret-key-for-development'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),
   PORT: z.string().or(z.number()).default(3000).transform(v => Number(v)),
+  GMAIL_USER: z.string().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
+  APP_URL: z.string().default('http://localhost:8080'),
 });
 
 // Parse and validate environment variables

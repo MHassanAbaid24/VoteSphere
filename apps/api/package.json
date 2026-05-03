@@ -9,17 +9,19 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.0.0",
     "@prisma/client": "^5.10.0",
-    "zod": "^3.22.4",
+    "@votesphere/types": "workspace:*",
+    "@votesphere/zod-schemas": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "@votesphere/types": "workspace:*",
-    "@votesphere/zod-schemas": "workspace:*"
+    "hono": "^4.0.0",
+    "nodemailer": "^8.0.7",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "prisma": "^5.10.0",
     "@types/cors": "^2.8.17",
+    "@types/nodemailer": "^8.0.0",
+    "prisma": "^5.10.0",
     "typescript": "^5.0.0"
   },
   "prisma": {
