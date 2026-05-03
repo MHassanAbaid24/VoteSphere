@@ -1,22 +1,233 @@
 import { Hono } from 'hono';
+import { setCookie, getCookie } from 'hono/cookie';
+import { ZodIssue } from 'zod';
+import { RegisterSchema, LoginSchema } from './auth.schema';
+import { registerUser, loginUser, refreshUserSession, logoutUser } from './auth.service';
+import { authMiddleware } from '../../middleware/auth.middleware';
+import { env } from '../../config/env';
+import { prisma } from '../../config/database';
 
 export const authRouter = new Hono();
 
-authRouter.post('/register', (c) => c.json({ success: true, data: null }));
-authRouter.post('/login', (c) => c.json({ success: true, data: null }));
-authRouter.post('/logout', (c) => c.json({ success: true, data: null }));
-authRouter.post('/refresh', (c) => c.json({ success: true, data: null }));
+// POST /register
+authRouter.post('/register', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = RegisterSchema.safeParse(body);
 
-authRouter.get('/verify-email', (c) => c.json({ success: true, data: null }));
-authRouter.post('/resend-verification', (c) => c.json({ success: true, data: null }));
+    if (!parsed.success) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input data',
+            details: parsed.error.issues.map((i: ZodIssue) => ({ field: i.path.join('.'), message: i.message })),
+          },
+        },
+        400
+      );
+    }
 
-authRouter.post('/forgot-password', (c) => c.json({ success: true, data: null }));
-authRouter.post('/reset-password', (c) => c.json({ success: true, data: null }));
+    const result = await registerUser(parsed.data);
 
-authRouter.get('/google', (c) => c.json({ success: true, data: null }));
-authRouter.get('/google/callback', (c) => c.json({ success: true, data: null }));
+    // Store refresh token as a secure cookie
+    setCookie(c, 'refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60,
+    });
 
-authRouter.get('/github', (c) => c.json({ success: true, data: null }));
-authRouter.get('/github/callback', (c) => c.json({ success: true, data: null }));
+    return c.json(
+      {
+        success: true,
+        data: {
+          accessToken: result.accessToken,
+          user: result.user,
+        },
+      },
+      201
+    );
+  } catch (err: unknown) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: (err as Error).message,
+        },
+      },
+      400
+    );
+  }
+});
 
-authRouter.get('/me', (c) => c.json({ success: true, data: null }));
+// POST /login
+authRouter.post('/login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = LoginSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input data',
+            details: parsed.error.issues.map((i: ZodIssue) => ({ field: i.path.join('.'), message: i.message })),
+          },
+        },
+        400
+      );
+    }
+
+    const result = await loginUser(parsed.data);
+
+    // Store refresh token as a secure cookie
+    setCookie(c, 'refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+        user: result.user,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: (err as Error).message,
+        },
+      },
+      401
+    );
+  }
+});
+
+// POST /refresh
+authRouter.post('/refresh', async (c) => {
+  try {
+    const cookieToken = getCookie(c, 'refresh_token');
+
+    if (!cookieToken) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'No refresh token provided in cookies',
+          },
+        },
+        401
+      );
+    }
+
+    const result = await refreshUserSession(cookieToken);
+
+    // Rotate the cookie token
+    setCookie(c, 'refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        accessToken: result.accessToken,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: (err as Error).message,
+        },
+      },
+      401
+    );
+  }
+});
+
+// POST /logout
+authRouter.post('/logout', async (c) => {
+  try {
+    const cookieToken = getCookie(c, 'refresh_token');
+    if (cookieToken) {
+      await logoutUser(cookieToken);
+    }
+
+    // Explicitly delete/expire the refresh cookie
+    setCookie(c, 'refresh_token', '', {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 0,
+    });
+
+    return c.json({ success: true, data: null });
+  } catch (err: unknown) {
+    return c.json({ success: true, data: null }); // Soft failure: just invalidate the session
+  }
+});
+
+// GET /me (Protected)
+authRouter.get('/me', authMiddleware, async (c) => {
+  const userPayload = c.get('user' as never) as { id: string } | undefined;
+
+  if (!userPayload || !userPayload.id) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User is not authenticated.',
+        },
+      },
+      401
+    );
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: userPayload.id },
+  });
+
+  if (!user) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User not found.',
+        },
+      },
+      404
+    );
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isPremium: user.isPremium,
+      },
+    },
+  });
+});

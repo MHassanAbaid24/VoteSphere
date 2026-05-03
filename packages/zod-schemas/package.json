@@ -2,5 +2,8 @@
   "name": "@votesphere/zod-schemas",
   "version": "1.0.0",
   "private": true,
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
 }

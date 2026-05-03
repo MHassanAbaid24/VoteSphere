@@ -14,7 +14,8 @@
     "zod": "^3.22.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "@votesphere/types": "workspace:*"
+    "@votesphere/types": "workspace:*",
+    "@votesphere/zod-schemas": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^5.10.0",

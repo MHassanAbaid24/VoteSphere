@@ -2,12 +2,15 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@votesphere/types": ["../../packages/types/index.ts"]
+    }
   },
   "include": ["src/**/*"]
 }
