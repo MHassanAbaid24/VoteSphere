@@ -13,7 +13,8 @@
     "@prisma/client": "^5.10.0",
     "zod": "^3.22.4",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@votesphere/types": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^5.10.0",
