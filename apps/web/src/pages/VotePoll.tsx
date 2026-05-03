@@ -30,13 +30,17 @@ const VotePoll = () => {
   }, [id, user]);
 
   const handleVoteSubmission = async () => {
-    if (!id || !selectedOption || !user) return;
+    if (!id || !selectedOption || !user || !poll) return;
 
     try {
+      const questionId = poll.questions?.[0]?.id;
+      if (!questionId) throw new Error("Question not found.");
+
       await voteMutation.mutateAsync({
         pollId: id,
-        optionId: selectedOption,
-        userId: user.id // Passing current user ID for de-duplication
+        answers: [
+          { questionId, optionId: selectedOption }
+        ]
       });
 
       toast.success("Your vote has been counted!");

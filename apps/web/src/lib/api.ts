@@ -17,6 +17,7 @@ const mapPoll = (p: any): Poll => ({
   expiresAt: p.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   totalVotes: p.totalVotes || 0,
   category: p.category,
+  questions: p.questions,
 });
 
 export const api = {
@@ -77,33 +78,31 @@ export const api = {
 
     // --- Voting Logic ---
 
-    castVote: async (pollId: string, optionId: string, userId: string): Promise<void> => {
-        const polls = await api.getPolls();
-        const userVotes = JSON.parse(localStorage.getItem("votesphere_user_votes") || "{}");
-
-        // De-duplication check
-        if (userVotes[userId]?.includes(pollId)) {
-            throw new Error("You have already voted on this poll.");
+    castVote: async (pollId: string, answers: { questionId: string; optionId: string }[]): Promise<void> => {
+        try {
+            const res = await apiClient.post(`/v1/polls/${pollId}/vote`, { answers });
+            if (!res.data?.success) {
+                throw new Error(res.data?.error?.message || "Failed to cast vote");
+            }
+        } catch (err: any) {
+            console.error("Error casting vote:", err);
+            throw new Error(err.response?.data?.error?.message || err.message || "Failed to cast vote");
         }
-
-        const pollIndex = polls.findIndex((p) => p.id === pollId);
-        if (pollIndex === -1) throw new Error("Poll not found.");
-
-        const option = polls[pollIndex].options.find((o) => o.id === optionId);
-        if (!option) throw new Error("Option not found.");
-
-        option.votes += 1;
-        polls[pollIndex].totalVotes += 1;
-
-        if (!userVotes[userId]) userVotes[userId] = [];
-        userVotes[userId].push(pollId);
-        localStorage.setItem("votesphere_user_votes", JSON.stringify(userVotes));
     },
 
-    hasVoted: async (pollId: string, userId: string): Promise<boolean> => {
-        const userVotes = JSON.parse(localStorage.getItem("votesphere_user_votes") || "{}");
-        return userVotes[userId]?.includes(pollId) || false;
+    hasVoted: async (pollId: string, userId?: string): Promise<boolean> => {
+        try {
+            const res = await apiClient.get(`/v1/polls/${pollId}/vote/status`);
+            if (res.data?.success && res.data?.data) {
+                return res.data.data.hasVoted ?? false;
+            }
+            return false;
+        } catch (err) {
+            console.error(`Error checking voted status for poll ${pollId}:`, err);
+            return false;
+        }
     },
+
 
     // --- Statistics Helpers ---
 

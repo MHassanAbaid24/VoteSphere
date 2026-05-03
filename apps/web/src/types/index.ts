@@ -23,6 +23,7 @@ export type Poll = {
     expiresAt: string;
     totalVotes: number;
     category?: string;
+    questions?: any[];
 };
 
 export type Vote = {

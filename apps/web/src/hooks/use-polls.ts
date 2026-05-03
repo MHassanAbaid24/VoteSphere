@@ -32,9 +32,8 @@ export const useCreatePoll = () => {
 export const useCastVote = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        // Updated mutationFn to accept 3 arguments via an object
-        mutationFn: ({ pollId, optionId, userId }: { pollId: string; optionId: string; userId: string }) =>
-            api.castVote(pollId, optionId, userId),
+        mutationFn: ({ pollId, answers }: { pollId: string; answers: { questionId: string; optionId: string }[] }) =>
+            api.castVote(pollId, answers),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["polls"] });
             queryClient.invalidateQueries({ queryKey: ["poll", variables.pollId] });
