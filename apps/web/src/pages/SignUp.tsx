@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,7 +55,7 @@ const passwordRules = [
 ];
 
 const SignUp = () => {
-  const { signup } = useAuth();
+  const { signup, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -68,6 +68,28 @@ const SignUp = () => {
   const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
   const [emailSendFailed, setEmailSendFailed] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Poll for verification completion when user is on verification success screen
+  useEffect(() => {
+    if (!signedUpEmail) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await apiClient.get("/v1/auth/me");
+        if (res.data?.success && res.data?.data?.user?.emailVerified) {
+          clearInterval(intervalId);
+          await refreshUser();
+          toast.success("Email verified successfully! Redirecting...");
+          navigate("/dashboard", { replace: true });
+        }
+      } catch (err) {
+        // Suppress any polling fetch errors
+      }
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [signedUpEmail, navigate, refreshUser]);
 
   const handleBlur = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -77,6 +99,12 @@ const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!acceptedTerms) {
+      toast.error("You must accept the Terms of Service and Privacy Policy to create an account.");
+      return;
+    }
+
     setTouched({ name: true, email: true, password: true });
     const currentErrors = validateForm(name, email, password);
     setErrors(currentErrors);
@@ -303,7 +331,13 @@ const SignUp = () => {
 
                 {/* Terms */}
                 <div className="flex items-start gap-2">
-                  <Checkbox id="terms" className="mt-1" required />
+                  <Checkbox
+                    id="terms"
+                    className="mt-1"
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(!!checked)}
+                    required
+                  />
                   <label htmlFor="terms" className="text-sm text-foreground leading-snug">
                     I agree to the <Link to="#" className="text-primary hover:underline">Terms of Service</Link> and <Link to="#" className="text-primary hover:underline">Privacy Policy</Link>.
                   </label>

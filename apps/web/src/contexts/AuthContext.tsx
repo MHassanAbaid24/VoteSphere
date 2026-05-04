@@ -10,6 +10,7 @@ interface AuthContextType {
     login: (email: string, password?: string) => Promise<void>;
     signup: (name: string, email: string, password?: string) => Promise<{ emailSent: boolean }>;
     logout: () => void;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +45,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         initAuth();
     }, []);
+
+    const refreshUser = async () => {
+        try {
+            const meRes = await apiClient.get("/v1/auth/me");
+            if (meRes.data?.success && meRes.data?.data?.user) {
+                setUser(meRes.data.data.user);
+            }
+        } catch (err) {
+            // Ignore any fetch errors during background/manual profile updates
+        }
+    };
 
     const login = async (email: string, password?: string) => {
         try {
@@ -92,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );
