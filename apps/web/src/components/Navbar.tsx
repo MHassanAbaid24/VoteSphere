@@ -42,8 +42,8 @@ const Navbar = ({ variant = "landing" }: NavbarProps) => {
               Dashboard
             </Link>
             <Link
-              to="/dashboard"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              to="/my-polls"
+              className={`text-sm ${location.pathname === "/my-polls" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
             >
               My Polls
             </Link>

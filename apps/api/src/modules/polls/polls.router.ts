@@ -44,16 +44,20 @@ pollsRouter.get('/me', authMiddleware, async (c) => {
     const userPayload = c.get('user' as never) as { id: string } | undefined;
     if (!userPayload) throw new Error('Not authenticated');
 
-    const result = await pollsService.getPolls({
-      status: undefined,
-      visibility: undefined,
-    });
+    const page = c.req.query('page');
+    const limit = c.req.query('limit');
+    const status = c.req.query('status')?.toUpperCase();
 
-    const myPolls = result.polls.filter((p: any) => p.creatorId === userPayload.id);
+    const result = await pollsService.getMyPolls(userPayload.id, {
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      status: status || undefined,
+    });
 
     return c.json({
       success: true,
-      data: myPolls,
+      data: result.polls,
+      pagination: result.pagination,
     });
   } catch (err: any) {
     return c.json(
@@ -167,6 +171,48 @@ pollsRouter.delete('/:id', authMiddleware, async (c) => {
     return c.json({
       success: true,
       data: { message: 'Poll deleted successfully' },
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
+// POST /v1/polls/:id/publish
+pollsRouter.post('/:id/publish', authMiddleware, async (c) => {
+  try {
+    const userPayload = c.get('user' as never) as { id: string } | undefined;
+    if (!userPayload) throw new Error('Not authenticated');
+
+    const pollId = c.req.param('id');
+    const poll = await pollsService.publishPoll(pollId as string, userPayload.id);
+
+    return c.json({
+      success: true,
+      data: poll,
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
+// POST /v1/polls/:id/close
+pollsRouter.post('/:id/close', authMiddleware, async (c) => {
+  try {
+    const userPayload = c.get('user' as never) as { id: string } | undefined;
+    if (!userPayload) throw new Error('Not authenticated');
+
+    const pollId = c.req.param('id');
+    const poll = await pollsService.closePoll(pollId as string, userPayload.id);
+
+    return c.json({
+      success: true,
+      data: poll,
     });
   } catch (err: any) {
     return c.json(

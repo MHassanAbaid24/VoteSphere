@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
 import AuthCallback from "./pages/AuthCallback";
+import MyPolls from "./pages/MyPolls";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
 
             {/* Protected Routes — login required */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/my-polls" element={<ProtectedRoute><MyPolls /></ProtectedRoute>} />
 
             {/* Protected + Verified Routes — email verification required */}
             <Route path="/create-poll" element={<ProtectedRoute><VerifiedRoute><CreatePoll /></VerifiedRoute></ProtectedRoute>} />
