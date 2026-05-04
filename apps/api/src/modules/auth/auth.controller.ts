@@ -282,7 +282,7 @@ export const googleLogin = async (c: Context) => {
   setCookie(c, 'google_oauth_code_verifier', codeVerifier, { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'Lax', maxAge: 60 * 10 });
 
   try {
-    const url = await googleOAuth.createAuthorizationURL(state, codeVerifier, { scopes: ['openid', 'profile', 'email'] });
+    const url = await googleOAuth.createAuthorizationURL(state, codeVerifier, ['openid', 'profile', 'email']);
     return c.redirect(url.toString());
   } catch (err: any) {
     return c.text(`OAuth Redirect error: ${err.message}`, 400);
@@ -358,7 +358,7 @@ export const githubLogin = async (c: Context) => {
   setCookie(c, 'github_oauth_state', state, { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'Lax', maxAge: 60 * 10 });
 
   try {
-    const url = await githubOAuth.createAuthorizationURL(state, { scopes: ['user:email'] });
+    const url = await githubOAuth.createAuthorizationURL(state, ['user:email']);
     return c.redirect(url.toString());
   } catch (err: any) {
     return c.text(`OAuth Redirect error: ${err.message}`, 400);

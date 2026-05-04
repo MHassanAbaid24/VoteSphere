@@ -276,7 +276,7 @@ export const resendVerification = async (email: string): Promise<void> => {
  */
 export const handleOAuthUser = async (provider: 'google' | 'github', providerUserId: string, email: string, name: string): Promise<AuthResult> => {
   // Check if an OAuthAccount with this provider and ID already exists
-  const existingAccount = await prisma.oauthAccount.findFirst({
+  const existingAccount = await prisma.oAuthAccount.findFirst({
     where: { provider, providerUserId },
     include: { user: true },
   });
@@ -310,7 +310,7 @@ export const handleOAuthUser = async (provider: 'google' | 'github', providerUse
     }
 
     // Associate the new or existing user with the OAuthAccount
-    await prisma.oauthAccount.create({
+    await prisma.oAuthAccount.create({
       data: {
         userId: user.id,
         provider,
