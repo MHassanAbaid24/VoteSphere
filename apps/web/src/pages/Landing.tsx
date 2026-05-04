@@ -1,11 +1,33 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CheckSquare, MousePointerClick, BarChart3, Users } from "lucide-react";
 import heroImage from "@/assets/hero-illustration.jpg";
+import { apiClient } from "@/lib/httpClient";
 
 const Landing = () => {
+  const [featuredPoll, setFeaturedPoll] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const res = await apiClient.get("/v1/polls/featured");
+        if (res.data?.success && res.data.data) {
+          setFeaturedPoll(res.data.data);
+        }
+      } catch (err) {
+        // Silently catch
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar variant="landing" />
@@ -89,26 +111,50 @@ const Landing = () => {
               </div>
               <Card className="bg-card">
                 <CardContent className="p-6">
-                  <h3 className="mb-4 text-lg font-semibold text-foreground">
-                    What is your favorite team collaboration tool?
-                  </h3>
-                  {[
-                    { label: "Slack", pct: 42 },
-                    { label: "Microsoft Teams", pct: 28 },
-                    { label: "Discord", pct: 18 },
-                    { label: "Other", pct: 12 },
-                  ].map((opt) => (
-                    <div key={opt.label} className="mb-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-foreground">{opt.label}</span>
-                        <span className="font-semibold text-primary">{opt.pct}%</span>
-                      </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${opt.pct}%` }} />
-                      </div>
+                  {featuredPoll ? (
+                    <>
+                      <h3 className="mb-4 text-lg font-semibold text-foreground">
+                        {featuredPoll.title}
+                      </h3>
+                      {featuredPoll.questions?.[0]?.options?.map((opt: any) => {
+                        const votesCount = opt.votes || 0;
+                        const pct = featuredPoll.totalVotes > 0 ? Math.round((votesCount / featuredPoll.totalVotes) * 100) : 0;
+                        return (
+                          <div key={opt.id} className="mb-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-foreground">{opt.text}</span>
+                              <span className="font-semibold text-primary">{pct}%</span>
+                            </div>
+                            <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <Button variant="default" className="mt-4 w-full" asChild>
+                        <Link to={`/poll/${featuredPoll.id}`}>Cast your vote</Link>
+                      </Button>
+                    </>
+                  ) : loading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
                     </div>
-                  ))}
-                  <Button variant="outline" className="mt-4 w-full">Cast your vote</Button>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center p-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                        <CheckSquare className="h-6 w-6" />
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground">No active polls found</h3>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                        Be the first to create a public poll and start collecting opinions.
+                      </p>
+                      <Button className="mt-5 w-full" asChild>
+                        <Link to="/create-poll">Create Your First Poll</Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </CardContent>

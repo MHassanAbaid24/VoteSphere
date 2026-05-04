@@ -289,3 +289,37 @@ export const closePoll = async (id: string, creatorId: string) => {
 
   return updatedPoll;
 };
+
+export const getFeaturedPoll = async () => {
+  const poll = await prisma.poll.findFirst({
+    where: {
+      status: 'ACTIVE',
+      visibility: 'PUBLIC',
+      deletedAt: null,
+    },
+    orderBy: {
+      votes: {
+        _count: 'desc',
+      },
+    },
+    include: {
+      questions: {
+        include: {
+          options: true,
+        },
+      },
+      _count: {
+        select: {
+          votes: true,
+        },
+      },
+    },
+  });
+
+  if (!poll) return null;
+
+  return {
+    ...poll,
+    totalVotes: poll._count.votes,
+  };
+};

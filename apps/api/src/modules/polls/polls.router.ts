@@ -8,6 +8,22 @@ import { ZodIssue } from 'zod';
 
 export const pollsRouter = new Hono();
 
+// GET /v1/polls/featured
+pollsRouter.get('/featured', async (c) => {
+  try {
+    const poll = await pollsService.getFeaturedPoll();
+    return c.json({
+      success: true,
+      data: poll,
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
 // GET /v1/polls
 pollsRouter.get('/', async (c) => {
   try {
