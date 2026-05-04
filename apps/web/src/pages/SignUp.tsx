@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, XCircle, MailCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -64,6 +64,7 @@ const SignUp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
 
   const handleBlur = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -87,14 +88,51 @@ const SignUp = () => {
     setIsLoading(true);
     try {
       await signup(name, email, password);
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+      setSignedUpEmail(email);
+      toast.success("Account created! Please check your email to verify.");
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
   };
+
+  // --- Email confirmation screen ---
+  if (signedUpEmail) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-md">
+          <div className="mb-8 flex justify-center">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <span className="text-xs font-bold text-primary-foreground">V</span>
+              </div>
+              <span className="text-lg font-bold text-foreground">VoteSphere</span>
+            </Link>
+          </div>
+          <Card>
+            <CardContent className="p-10 text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <MailCheck className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Check your inbox!</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  We sent a verification link to <span className="font-medium text-foreground">{signedUpEmail}</span>.
+                  Click the link in the email to activate your account.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Already verified? <Link to="/login" className="text-primary hover:underline font-medium">Login here</Link>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const showPasswordRules = password.length > 0;
 

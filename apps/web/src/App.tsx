@@ -15,6 +15,7 @@ import PollResults from "./pages/PollResults";
 import VotePoll from "./pages/VotePoll";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/poll/:id/results" element={<PollResults />} />
 
             {/* Protected Routes */}
