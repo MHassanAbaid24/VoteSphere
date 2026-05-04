@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePolls } from "@/hooks/use-polls";
-import { formatDistanceToNow, isAfter } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 const Dashboard = () => {
   const { user } = useAuth();

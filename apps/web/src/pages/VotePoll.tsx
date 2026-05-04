@@ -22,12 +22,16 @@ const VotePoll = () => {
   const { data: poll, isLoading: pollLoading } = usePoll(id || "");
   const voteMutation = useCastVote();
 
-  // Check if user already voted on mount
+  // Check if user already voted on mount or if they are the creator
   useEffect(() => {
-    if (id && user) {
+    if (id && user && poll) {
+      if (poll.creatorId === user.id) {
+        navigate(`/poll/${id}/results`, { replace: true });
+        return;
+      }
       api.hasVoted(id, user.id).then(setAlreadyVoted);
     }
-  }, [id, user]);
+  }, [id, user, poll, navigate]);
 
   const handleVoteSubmission = async () => {
     if (!id || !selectedOption || !user || !poll) return;
