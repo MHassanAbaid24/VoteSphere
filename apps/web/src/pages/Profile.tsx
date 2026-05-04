@@ -1,9 +1,21 @@
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   BarChart3,
   Users,
@@ -13,17 +25,24 @@ import {
   LogOut,
   Mail,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePolls } from "@/hooks/use-polls";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/httpClient";
 
 const Profile = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { data: allPolls, isLoading } = usePolls();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // 1. Filter polls created by this user
   const myPolls = allPolls?.filter(p => p.creatorId === user?.id) || [];
@@ -36,6 +55,25 @@ const Profile = () => {
     logout();
     toast.success("Logged out successfully");
     navigate("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (confirmEmail !== user?.email) {
+      toast.error("Email address does not match.");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await apiClient.delete("/v1/users/me");
+      logout();
+      toast.success("Your account has been permanently deleted.");
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || "Failed to delete account.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -86,7 +124,7 @@ const Profile = () => {
                 </div>
 
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   className="mt-8 w-full"
                   onClick={handleLogout}
                 >
@@ -108,6 +146,84 @@ const Profile = () => {
                   <UserCheck className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Verified Creator</span>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Danger Zone Card */}
+            <Card className="border-destructive/40">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Danger Zone
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                  setDeleteDialogOpen(open);
+                  if (!open) setConfirmEmail("");
+                }}>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive" className="w-full" size="sm">
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Account
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-destructive">
+                        <Trash2 className="h-5 w-5" /> Delete Account
+                      </DialogTitle>
+                      <DialogDescription className="space-y-2 pt-2">
+                        <p>
+                          This will <strong>permanently delete</strong> your account, all your polls, votes, and associated data.
+                          <strong> This action cannot be undone.</strong>
+                        </p>
+                        <p className="pt-1">
+                          To confirm, type your email address{" "}
+                          <span className="font-mono font-semibold text-foreground">{user?.email}</span>{" "}
+                          below:
+                        </p>
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2 py-2">
+                      <Label htmlFor="confirm-email">Your email address</Label>
+                      <Input
+                        id="confirm-email"
+                        type="email"
+                        placeholder={user?.email}
+                        value={confirmEmail}
+                        onChange={(e) => setConfirmEmail(e.target.value)}
+                        className={confirmEmail && confirmEmail !== user?.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                        autoComplete="off"
+                      />
+                      {confirmEmail && confirmEmail !== user?.email && (
+                        <p className="text-xs text-destructive">Email does not match.</p>
+                      )}
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setDeleteDialogOpen(false);
+                          setConfirmEmail("");
+                        }}
+                        disabled={isDeleting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                        disabled={confirmEmail !== user?.email || isDeleting}
+                      >
+                        {isDeleting ? "Deleting..." : "Yes, Delete My Account"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>
