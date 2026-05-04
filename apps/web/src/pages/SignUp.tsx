@@ -5,9 +5,53 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+// Mirrors backend auth.schema.ts rules exactly
+const validateForm = (name: string, email: string, password: string) => {
+  const errors: Record<string, string> = {};
+
+  if (!name.trim()) {
+    errors.name = "Full name is required.";
+  } else if (name.trim().length < 2) {
+    errors.name = "Name must be at least 2 characters long.";
+  } else if (name.trim().length > 50) {
+    errors.name = "Name cannot exceed 50 characters.";
+  }
+
+  if (!email.trim()) {
+    errors.email = "Email address is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = "Please enter a valid email address.";
+  }
+
+  if (!password) {
+    errors.password = "Password is required.";
+  } else if (password.length < 8) {
+    errors.password = "Password must be at least 8 characters long.";
+  } else if (!/[A-Z]/.test(password)) {
+    errors.password = "Password must contain at least one uppercase letter.";
+  } else if (!/[a-z]/.test(password)) {
+    errors.password = "Password must contain at least one lowercase letter.";
+  } else if (!/[0-9]/.test(password)) {
+    errors.password = "Password must contain at least one number.";
+  } else if (!/[^A-Za-z0-9]/.test(password)) {
+    errors.password = "Password must contain at least one special character (e.g. !@#$%).";
+  }
+
+  return errors;
+};
+
+// Individual password rule checks (for the visual strength indicator)
+const passwordRules = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { label: "One special character (!@#$%...)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
 
 const SignUp = () => {
   const { signup } = useAuth();
@@ -18,11 +62,25 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const currentErrors = validateForm(name, email, password);
+    setErrors(currentErrors);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
-      toast.error("Please fill in all fields");
+
+    // Mark all fields as touched to show all errors
+    setTouched({ name: true, email: true, password: true });
+    const currentErrors = validateForm(name, email, password);
+    setErrors(currentErrors);
+
+    if (Object.keys(currentErrors).length > 0) {
+      toast.error("Please fix the errors before submitting.");
       return;
     }
 
@@ -37,6 +95,8 @@ const SignUp = () => {
       setIsLoading(false);
     }
   };
+
+  const showPasswordRules = password.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,7 +121,8 @@ const SignUp = () => {
                 <p className="mt-1 text-sm text-muted-foreground">Join thousands of users making better decisions</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+                {/* Full Name */}
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <div className="relative">
@@ -69,13 +130,20 @@ const SignUp = () => {
                     <Input
                       id="name"
                       placeholder="John Doe"
-                      className="pl-10"
+                      className={`pl-10 ${touched.name && errors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      required
+                      onBlur={() => handleBlur("name")}
                     />
                   </div>
+                  {touched.name && errors.name && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <XCircle className="h-3 w-3" /> {errors.name}
+                    </p>
+                  )}
                 </div>
+
+                {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <div className="relative">
@@ -84,13 +152,20 @@ const SignUp = () => {
                       id="email"
                       type="email"
                       placeholder="john@example.com"
-                      className="pl-10"
+                      className={`pl-10 ${touched.email && errors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required
+                      onBlur={() => handleBlur("email")}
                     />
                   </div>
+                  {touched.email && errors.email && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <XCircle className="h-3 w-3" /> {errors.email}
+                    </p>
+                  )}
                 </div>
+
+                {/* Password */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
@@ -99,10 +174,10 @@ const SignUp = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10 pr-10"
+                      className={`pl-10 pr-10 ${touched.password && errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
+                      onBlur={() => handleBlur("password")}
                     />
                     <button
                       type="button"
@@ -112,8 +187,27 @@ const SignUp = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+
+                  {/* Password strength checklist */}
+                  {showPasswordRules && (
+                    <ul className="mt-2 space-y-1 rounded-md border border-border bg-muted/40 p-3">
+                      {passwordRules.map((rule) => {
+                        const passes = rule.test(password);
+                        return (
+                          <li key={rule.label} className={`flex items-center gap-2 text-xs ${passes ? "text-green-600" : "text-muted-foreground"}`}>
+                            {passes
+                              ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                              : <XCircle className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                            }
+                            {rule.label}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
 
+                {/* Terms */}
                 <div className="flex items-start gap-2">
                   <Checkbox id="terms" className="mt-1" required />
                   <label htmlFor="terms" className="text-sm text-foreground leading-snug">
