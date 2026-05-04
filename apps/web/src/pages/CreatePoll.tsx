@@ -16,6 +16,7 @@ import { FileText, List, Settings, GripVertical, Trash2, Plus, Image as ImageIco
 import { useCreatePoll } from "@/hooks/use-polls";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/httpClient";
 
 // Form Validation Schema
 const pollSchema = z.object({
@@ -38,6 +39,7 @@ const CreatePoll = () => {
   const { user } = useAuth();
   const createMutation = useCreatePoll();
   const [base64Image, setBase64Image] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const form = useForm<PollFormValues>({
     resolver: zodResolver(pollSchema),
@@ -64,6 +66,7 @@ const CreatePoll = () => {
         toast.error("Image must be smaller than 2MB");
         return;
       }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setBase64Image(reader.result as string);
@@ -89,8 +92,19 @@ const CreatePoll = () => {
           text: opt.text,
           votes: 0,
         })),
-        // In a real app, you'd send base64Image to your API here
       });
+
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append("cover", selectedFile);
+          await apiClient.post(`/v1/polls/${newPoll.id}/cover`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } catch (err) {
+          toast.error("Failed to upload cover image.");
+        }
+      }
 
       toast.success("Poll created successfully!");
       navigate(`/poll/${newPoll.id}/results`);

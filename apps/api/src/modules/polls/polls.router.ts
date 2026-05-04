@@ -5,6 +5,7 @@ import { authMiddleware } from '../../middleware/auth.middleware';
 import { CreatePollSchema, UpdatePollSchema } from './polls.schema';
 import * as pollsService from './polls.service';
 import { ZodIssue } from 'zod';
+import { uploadToS3 } from '../../lib/s3';
 
 export const pollsRouter = new Hono();
 
@@ -229,6 +230,57 @@ pollsRouter.post('/:id/close', authMiddleware, async (c) => {
     return c.json({
       success: true,
       data: poll,
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
+// POST /v1/polls/:id/cover
+pollsRouter.post('/:id/cover', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as never) as { id: string } | undefined;
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, 401);
+    }
+    const pollId = c.req.param('id');
+    const poll = await prisma.poll.findUnique({ where: { id: pollId } });
+    if (!poll) {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Poll not found' } }, 404);
+    }
+    if (poll.creatorId !== user.id) {
+      return c.json({ success: false, error: { code: 'FORBIDDEN', message: 'You do not own this poll' } }, 403);
+    }
+
+    const body = await c.req.parseBody();
+    const file = body['cover'];
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'No file uploaded or invalid file' } }, 400);
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' } }, 400);
+    }
+
+    // Convert File to Buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const ext = file.name.split('.').pop() || 'png';
+    const key = `covers/${pollId}/${crypto.randomUUID()}.${ext}`;
+
+    const url = await uploadToS3(key, buffer, file.type);
+
+    // Update the poll with new coverImage url
+    const updatedPoll = await prisma.poll.update({
+      where: { id: pollId },
+      data: { coverImage: url },
+    });
+
+    return c.json({
+      success: true,
+      data: updatedPoll,
     });
   } catch (err: any) {
     return c.json(

@@ -17,6 +17,10 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().default('mock_google_client_secret'),
   GITHUB_CLIENT_ID: z.string().default('mock_github_client_id'),
   GITHUB_CLIENT_SECRET: z.string().default('mock_github_client_secret'),
+  AWS_REGION: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 // Parse and validate environment variables
