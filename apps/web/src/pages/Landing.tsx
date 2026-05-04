@@ -91,39 +91,30 @@ const Landing = () => {
       <section className="py-20">
         <div className="container mx-auto px-6">
           <Card className="overflow-hidden border-0 bg-accent">
-            <CardContent className="grid gap-10 p-10 lg:grid-cols-2 lg:items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Live Poll Preview</h2>
-                <p className="mt-2 text-muted-foreground">
-                  Try it out! This is how your participants see and interact with your polls.
-                </p>
-                {featuredPoll ? (
-                  <div className="mt-6 flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {[0, 1, 2].map((i) => (
-                        <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent bg-primary">
-                          <Users className="h-3 w-3 text-primary-foreground" />
-                        </div>
-                      ))}
+            <CardContent className="p-10">
+              {featuredPoll ? (
+                <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Live Poll Preview</h2>
+                    <p className="mt-2 text-muted-foreground">
+                      Try it out! This is how your participants see and interact with your polls.
+                    </p>
+                    <div className="mt-6 flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent bg-primary">
+                            <Users className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                        ))}
+                      </div>
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                        +{featuredPoll.totalVotes}
+                      </span>
+                      <span className="text-sm text-muted-foreground">Recently voted</span>
                     </div>
-                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                      +{featuredPoll.totalVotes}
-                    </span>
-                    <span className="text-sm text-muted-foreground">Recently voted</span>
                   </div>
-                ) : (
-                  <div className="mt-6 flex items-center gap-2">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      0
-                    </span>
-                    <span className="text-sm text-muted-foreground">Recently voted</span>
-                  </div>
-                )}
-              </div>
-              <Card className="bg-card">
-                <CardContent className="p-6">
-                  {featuredPoll ? (
-                    <>
+                  <Card className="bg-card">
+                    <CardContent className="p-6">
                       <h3 className="mb-4 text-lg font-semibold text-foreground">
                         {featuredPoll.title}
                       </h3>
@@ -145,29 +136,36 @@ const Landing = () => {
                       <Button variant="default" className="mt-4 w-full" asChild>
                         <Link to={`/poll/${featuredPoll.id}`}>Cast your vote</Link>
                       </Button>
-                    </>
-                  ) : loading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-6 w-3/4" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
-                        <CheckSquare className="h-6 w-6" />
-                      </div>
-                      <h3 className="text-lg font-bold text-foreground">No active polls found</h3>
-                      <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                        Be the first to create a public poll and start collecting opinions.
-                      </p>
-                      <Button className="mt-5 w-full" asChild>
-                        <Link to="/create-poll">Create Your First Poll</Link>
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : loading ? (
+                <div className="space-y-4 max-w-md mx-auto py-10">
+                  <Skeleton className="h-6 w-3/4 mx-auto" />
+                  <Skeleton className="h-4 w-full mx-auto" />
+                  <Skeleton className="h-4 w-5/6 mx-auto" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-6">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-5 shadow-sm">
+                    <MousePointerClick className="h-8 w-8" />
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-foreground tracking-tight sm:text-4xl">
+                    Be the First to Feature Your Poll
+                  </h2>
+                  <p className="mt-4 text-base text-muted-foreground leading-relaxed max-w-xl">
+                    We only feature active public polls that have received at least 3 responses. Create a poll now and gather your first 3 responses to see your poll showcased directly on our home page!
+                  </p>
+                  <div className="mt-8 flex flex-wrap justify-center gap-4 w-full sm:w-auto">
+                    <Button size="lg" className="px-8 shadow-md" asChild>
+                      <Link to="/create-poll">Create a New Poll</Link>
+                    </Button>
+                    <Button size="lg" variant="outline" className="px-8 bg-background" asChild>
+                      <Link to="/community">Explore Community</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
