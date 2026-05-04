@@ -320,7 +320,7 @@ export const googleCallback = async (c: Context) => {
   try {
     const tokens = await googleOAuth.validateAuthorizationCode(code, storedCodeVerifier);
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      headers: { Authorization: `Bearer ${tokens.accessToken()}` },
     });
     const userInfo = await userResponse.json();
 
@@ -396,7 +396,7 @@ export const githubCallback = async (c: Context) => {
     const tokens = await githubOAuth.validateAuthorizationCode(code);
     const userResponse = await fetch('https://api.github.com/user', {
       headers: { 
-        Authorization: `Bearer ${tokens.accessToken}`,
+        Authorization: `Bearer ${tokens.accessToken()}`,
         'User-Agent': 'VoteSphere'
       },
     });
@@ -406,7 +406,7 @@ export const githubCallback = async (c: Context) => {
     if (!email) {
       const emailsResponse = await fetch('https://api.github.com/user/emails', {
         headers: { 
-          Authorization: `Bearer ${tokens.accessToken}`,
+          Authorization: `Bearer ${tokens.accessToken()}`,
           'User-Agent': 'VoteSphere'
         },
       });
