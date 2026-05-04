@@ -59,16 +59,17 @@ export const rateLimiter = (config: RateLimitConfig) => {
   };
 };
 
-// Global limiter: 100 requests per 15 minutes per IP
+// Global limiter: 1000 requests per 15 minutes per IP
 export const globalLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   message: 'Too many requests. Please slow down.',
 });
 
-// Sensitive Auth endpoints: 15 requests per 15 minutes per IP
+// Sensitive Auth endpoints: 60 requests per 15 minutes per IP
 export const authLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 60,
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
 });
+

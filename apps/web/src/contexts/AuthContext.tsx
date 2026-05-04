@@ -34,7 +34,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setUser(meRes.data.data.user);
                     }
                 }
-            } catch (err) {
+            } catch (err: any) {
+                const status = err.response?.status;
+                if (status === 429 || (status && status >= 500)) {
+                    return;
+                }
                 // If silent refresh fails, clear tokenStore
                 tokenStore.clear();
                 setUser(null);
