@@ -97,7 +97,9 @@ const SignUp = () => {
         toast.warning("Account created, but we couldn't send the verification email.");
       }
     } catch (error: any) {
-      const msg = error.message || error.response?.data?.error?.message || "";
+      const apiMsg = error.response?.data?.error?.message;
+      const genericMsg = error.message;
+      const msg = apiMsg || genericMsg || "";
       if (msg.toLowerCase().includes("already exists")) {
         setSignedUpEmail(email);
         setEmailSendFailed(true);
