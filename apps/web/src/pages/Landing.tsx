@@ -28,6 +28,17 @@ const Landing = () => {
     fetchFeatured();
   }, []);
 
+  useEffect(() => {
+    if (window.location.hash === "#features") {
+      const el = document.getElementById("features");
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar variant="landing" />
@@ -61,7 +72,7 @@ const Landing = () => {
       </section>
 
       {/* Features */}
-      <section className="bg-card py-20">
+      <section id="features" className="bg-card py-20">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-foreground">Powerful Features</h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
@@ -181,7 +192,10 @@ const Landing = () => {
             <span className="font-semibold text-foreground">VoteSphere</span>
           </div>
           <nav className="flex gap-6">
-            <span>About Us</span><span>GitHub</span><span>Privacy Policy</span><span>Terms of Service</span>
+            <Link to="/about" className="hover:text-foreground">About Us</Link>
+            <a href="https://github.com/MHassanAbaid24/VoteSphere" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
+            <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
           </nav>
           <span>© 2024 VoteSphere. Built for builders.</span>
         </div>

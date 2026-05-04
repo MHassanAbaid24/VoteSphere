@@ -13,6 +13,7 @@ import { votesRouter } from './modules/votes/votes.router';
 import { communityRouter } from './modules/community/community.router';
 import { analyticsRouter } from './modules/analytics/analytics.router';
 import { notificationsRouter } from './modules/notifications/notifications.router';
+import { contentRouter } from './modules/content/content.router';
 
 export const app = new Hono();
 
@@ -43,6 +44,7 @@ v1.route('/polls', votesRouter); // Mounts /polls/:id/vote
 v1.route('/community', communityRouter);
 v1.route('/analytics', analyticsRouter);
 v1.route('/notifications', notificationsRouter);
+v1.route('/content', contentRouter);
 
 // Mount v1
 app.route('/v1', v1);

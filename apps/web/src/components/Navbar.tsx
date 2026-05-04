@@ -9,6 +9,16 @@ interface NavbarProps {
 const Navbar = ({ variant = "landing" }: NavbarProps) => {
   const location = useLocation();
 
+  const handleScrollToFeatures = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (location.pathname === "/") {
+      e.preventDefault();
+      const el = document.getElementById("features");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <header className="border-b border-border bg-card">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
@@ -26,7 +36,7 @@ const Navbar = ({ variant = "landing" }: NavbarProps) => {
 
         {variant === "landing" ? (
           <nav className="flex items-center gap-6">
-            <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground">Features</Link>
+            <Link to="/#features" onClick={handleScrollToFeatures} className="text-sm text-muted-foreground hover:text-foreground">Features</Link>
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">Login</Link>
             <Link to="/signup" className="text-sm text-muted-foreground hover:text-foreground">Sign Up</Link>
             <Button asChild size="sm">
