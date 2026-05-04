@@ -97,7 +97,14 @@ const SignUp = () => {
         toast.warning("Account created, but we couldn't send the verification email.");
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+      const msg = error.message || error.response?.data?.error?.message || "";
+      if (msg.toLowerCase().includes("already exists")) {
+        setSignedUpEmail(email);
+        setEmailSendFailed(true);
+        toast.error("This email is already registered. If you haven't received a verification email yet, you can resend it below.");
+      } else {
+        toast.error(msg || "Failed to create account");
+      }
     } finally {
       setIsLoading(false);
     }

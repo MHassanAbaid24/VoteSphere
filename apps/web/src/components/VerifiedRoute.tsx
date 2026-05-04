@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiClient } from "@/lib/httpClient";
+import { toast } from "sonner";
 
 /**
  * Wraps a route that requires email verification.
@@ -10,6 +13,20 @@ import { Card, CardContent } from "@/components/ui/card";
  */
 export const VerifiedRoute = ({ children }: { children: React.ReactNode }) => {
     const { user, isLoading } = useAuth();
+    const [isResending, setIsResending] = useState(false);
+
+    const handleResend = async () => {
+        if (!user?.email) return;
+        setIsResending(true);
+        try {
+            await apiClient.post("/v1/auth/resend-verification", { email: user.email });
+            toast.success("Verification email resent successfully! Please check your inbox.");
+        } catch (err: any) {
+            toast.error(err.response?.data?.error?.message || "Failed to resend. Please try again later.");
+        } finally {
+            setIsResending(false);
+        }
+    };
 
     if (isLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -34,7 +51,10 @@ export const VerifiedRoute = ({ children }: { children: React.ReactNode }) => {
                                 </p>
                             </div>
                             <div className="flex flex-col gap-3">
-                                <Button asChild className="w-full">
+                                <Button onClick={handleResend} disabled={isResending} variant="default" className="w-full">
+                                    {isResending ? "Resending..." : "Resend Verification Email"}
+                                </Button>
+                                <Button asChild variant="outline" className="w-full">
                                     <Link to="/dashboard">Back to Dashboard</Link>
                                 </Button>
                             </div>
