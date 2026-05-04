@@ -227,6 +227,7 @@ authRouter.get('/me', authMiddleware, async (c) => {
         email: user.email,
         role: user.role,
         isPremium: user.isPremium,
+        emailVerified: user.emailVerified,
       },
     },
   });

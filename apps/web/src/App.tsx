@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { VerifiedRoute } from "@/components/VerifiedRoute";
 
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
@@ -34,11 +35,13 @@ const App = () => (
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/poll/:id/results" element={<PollResults />} />
 
-            {/* Protected Routes */}
+            {/* Protected Routes — login required */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/create-poll" element={<ProtectedRoute><CreatePoll /></ProtectedRoute>} />
-            <Route path="/poll/:id" element={<ProtectedRoute><VotePoll /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+            {/* Protected + Verified Routes — email verification required */}
+            <Route path="/create-poll" element={<ProtectedRoute><VerifiedRoute><CreatePoll /></VerifiedRoute></ProtectedRoute>} />
+            <Route path="/poll/:id" element={<ProtectedRoute><VerifiedRoute><VotePoll /></VerifiedRoute></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><VerifiedRoute><Profile /></VerifiedRoute></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
