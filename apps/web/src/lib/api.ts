@@ -18,6 +18,7 @@ const mapPoll = (p: any): Poll => ({
   totalVotes: p.totalVotes || 0,
   category: p.category,
   questions: p.questions,
+  coverImage: p.coverImage,
 });
 
 export const api = {
