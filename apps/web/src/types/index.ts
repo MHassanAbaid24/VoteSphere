@@ -25,6 +25,7 @@ export type Poll = {
     totalVotes: number;
     category?: string;
     questions?: any[];
+    coverImage?: string | null;
 };
 
 export type Vote = {

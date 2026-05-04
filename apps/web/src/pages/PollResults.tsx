@@ -50,7 +50,11 @@ const PollResults = () => {
         <Card className="w-full max-w-2xl border-primary/20 shadow-lg">
           {/* Cover Header */}
           <div className="relative h-48 overflow-hidden rounded-t-lg bg-muted">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20" />
+            {poll.coverImage ? (
+              <img src={poll.coverImage} alt="Cover" className="h-full w-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20" />
+            )}
             <div className="absolute bottom-4 left-4 flex gap-2">
               <Badge className={poll.status === "active" ? "bg-success hover:bg-success" : "bg-muted text-muted-foreground"}>
                 {poll.status === "active" ? "● LIVE" : "CLOSED"}
