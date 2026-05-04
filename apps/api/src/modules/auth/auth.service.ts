@@ -8,6 +8,7 @@ import { sendVerificationEmail } from '../../lib/mailer';
 export interface AuthResult {
   accessToken: string;
   refreshToken: string;
+  emailSent?: boolean;
   user: {
     id: string;
     name: string;
@@ -78,11 +79,12 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
     },
   });
 
-  await sendVerificationEmail(user.email, verificationTokenString);
+  const emailSent = await sendVerificationEmail(user.email, verificationTokenString);
 
   return {
     accessToken,
     refreshToken: refreshTokenString,
+    emailSent,
     user: {
       id: user.id,
       name: user.name,

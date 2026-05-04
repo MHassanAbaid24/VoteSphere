@@ -44,6 +44,7 @@ authRouter.post('/register', async (c) => {
         success: true,
         data: {
           accessToken: result.accessToken,
+          emailSent: result.emailSent ?? false,
           user: result.user,
         },
       },

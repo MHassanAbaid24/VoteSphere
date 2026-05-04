@@ -8,7 +8,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password?: string) => Promise<void>;
-    signup: (name: string, email: string, password?: string) => Promise<void>;
+    signup: (name: string, email: string, password?: string) => Promise<{ emailSent: boolean }>;
     logout: () => void;
 }
 
@@ -55,11 +55,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const signup = async (name: string, email: string, password?: string) => {
+    const signup = async (name: string, email: string, password?: string): Promise<{ emailSent: boolean }> => {
         const res = await apiClient.post("/v1/auth/register", { name, email, password });
         if (res.data?.success && res.data?.data?.accessToken) {
             tokenStore.set(res.data.data.accessToken);
             setUser(res.data.data.user);
+            return { emailSent: res.data.data.emailSent ?? false };
         } else {
             throw new Error(res.data?.error?.message || "Failed to create account");
         }

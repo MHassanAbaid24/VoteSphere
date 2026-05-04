@@ -9,11 +9,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendVerificationEmail = async (to: string, token: string): Promise<void> => {
+/**
+ * Sends a verification email.
+ * Returns true if sent successfully, false on any failure.
+ * Never throws — caller decides how to handle the failure.
+ */
+export const sendVerificationEmail = async (to: string, token: string): Promise<boolean> => {
   if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) {
-    // Graceful no-op in development when env vars are not configured
     console.warn(`[Mailer] Email not sent (GMAIL_USER not configured). Verify URL: ${env.APP_URL}/verify-email?token=${token}`);
-    return;
+    return false;
   }
 
   const verifyUrl = `${env.APP_URL}/verify-email?token=${token}`;
@@ -36,7 +40,14 @@ export const sendVerificationEmail = async (to: string, token: string): Promise<
         <p>This link expires in 24 hours.</p>
       `,
     });
-  } catch (err) {
-    console.error('[Mailer] Error sending email:', err);
+    return true;
+  } catch (err: any) {
+    // Classify DNS / network errors for better logging
+    if (err?.code === 'EDNS' || err?.code === 'ECONNREFUSED' || err?.code === 'ETIMEDOUT') {
+      console.error(`[Mailer] Network error sending email to ${to}: ${err.message} (${err.code})`);
+    } else {
+      console.error('[Mailer] Error sending email:', err);
+    }
+    return false;
   }
 };

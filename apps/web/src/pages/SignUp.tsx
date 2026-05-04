@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, XCircle, MailCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/lib/httpClient";
 import { toast } from "sonner";
 
 // Mirrors backend auth.schema.ts rules exactly
@@ -65,6 +66,8 @@ const SignUp = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
+  const [emailSendFailed, setEmailSendFailed] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleBlur = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -74,8 +77,6 @@ const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Mark all fields as touched to show all errors
     setTouched({ name: true, email: true, password: true });
     const currentErrors = validateForm(name, email, password);
     setErrors(currentErrors);
@@ -87,13 +88,32 @@ const SignUp = () => {
 
     setIsLoading(true);
     try {
-      await signup(name, email, password);
+      const result = await signup(name, email, password);
       setSignedUpEmail(email);
-      toast.success("Account created! Please check your email to verify.");
+      setEmailSendFailed(!result.emailSent);
+      if (result.emailSent) {
+        toast.success("Account created! Please check your email to verify.");
+      } else {
+        toast.warning("Account created, but we couldn't send the verification email.");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!signedUpEmail) return;
+    setIsResending(true);
+    try {
+      await apiClient.post("/v1/auth/resend-verification", { email: signedUpEmail });
+      setEmailSendFailed(false);
+      toast.success("Verification email resent! Please check your inbox.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || "Failed to resend. Please try again later.");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -113,20 +133,47 @@ const SignUp = () => {
           <Card>
             <CardContent className="p-10 text-center space-y-6">
               <div className="flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <MailCheck className="h-8 w-8 text-primary" />
+                <div className={`flex h-16 w-16 items-center justify-center rounded-full ${emailSendFailed ? "bg-destructive/10" : "bg-primary/10"}`}>
+                  {emailSendFailed
+                    ? <XCircle className="h-8 w-8 text-destructive" />
+                    : <MailCheck className="h-8 w-8 text-primary" />}
                 </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Check your inbox!</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  We sent a verification link to <span className="font-medium text-foreground">{signedUpEmail}</span>.
-                  Click the link in the email to activate your account.
+
+              {emailSendFailed ? (
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">Couldn't Send Verification Email</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Your account was created, but we couldn't deliver a verification email to{" "}
+                    <span className="font-medium text-foreground">{signedUpEmail}</span>.
+                    This is usually a temporary network issue. Please try resending.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">Check your inbox!</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    We sent a verification link to{" "}
+                    <span className="font-medium text-foreground">{signedUpEmail}</span>.
+                    Click the link in the email to activate your account.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  variant={emailSendFailed ? "default" : "outline"}
+                  className="w-full"
+                  onClick={handleResend}
+                  disabled={isResending}
+                >
+                  {isResending ? "Resending..." : "Resend Verification Email"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Already verified?{" "}
+                  <Link to="/login" className="text-primary hover:underline font-medium">Login here</Link>
                 </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Already verified? <Link to="/login" className="text-primary hover:underline font-medium">Login here</Link>
-              </p>
             </CardContent>
           </Card>
         </div>
