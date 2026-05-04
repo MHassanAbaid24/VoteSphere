@@ -1,5 +1,23 @@
 import { prisma } from '../../config/database';
 import { CreatePollInput, UpdatePollInput } from './polls.schema';
+import { generateSignedUrl } from '../../lib/s3';
+
+/**
+ * Helper function to convert poll coverImage URL to signed URL if it exists
+ */
+const enrichPollWithSignedUrl = async (poll: any) => {
+  if (poll.coverImage && poll.coverImage.startsWith('https://')) {
+    poll.coverImage = await generateSignedUrl(poll.coverImage);
+  }
+  return poll;
+};
+
+/**
+ * Helper function to enrich multiple polls with signed URLs
+ */
+const enrichPollsWithSignedUrls = async (polls: any[]) => {
+  return Promise.all(polls.map(enrichPollWithSignedUrl));
+};
 
 export const createPoll = async (creatorId: string, input: CreatePollInput) => {
   const poll = await prisma.poll.create({
@@ -79,8 +97,10 @@ export const getPolls = async (filters: {
     prisma.poll.count({ where }),
   ]);
 
+  const enrichedPolls = await enrichPollsWithSignedUrls(polls);
+
   return {
-    polls,
+    polls: enrichedPolls,
     pagination: {
       total,
       page,
@@ -113,7 +133,7 @@ export const getPollById = async (id: string) => {
     throw new Error('Poll not found or has been deleted');
   }
 
-  return poll;
+  return enrichPollWithSignedUrl(poll);
 };
 
 export const updatePoll = async (id: string, creatorId: string, input: UpdatePollInput) => {
@@ -217,11 +237,13 @@ export const getMyPolls = async (creatorId: string, filters: {
     prisma.poll.count({ where }),
   ]);
 
+  const enrichedPolls = await enrichPollsWithSignedUrls(polls.map(p => ({
+    ...p,
+    totalVotes: p._count.votes,
+  })));
+
   return {
-    polls: polls.map(p => ({
-      ...p,
-      totalVotes: p._count.votes,
-    })),
+    polls: enrichedPolls,
     pagination: {
       total,
       page,
@@ -320,8 +342,10 @@ export const getFeaturedPoll = async () => {
 
   if (!poll) return null;
 
-  return {
+  const enrichedPoll = await enrichPollWithSignedUrl({
     ...poll,
     totalVotes: poll._count.votes,
-  };
+  });
+
+  return enrichedPoll;
 };
