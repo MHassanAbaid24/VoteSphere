@@ -35,7 +35,8 @@ const Login = () => {
       toast.success("Welcome back!");
       navigate(from, { replace: true });
     } catch (error: any) {
-      toast.error(error.message || "Invalid email or password");
+      const msg = error.response?.data?.error?.message || error.message || "Invalid email or password";
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }

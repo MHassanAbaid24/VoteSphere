@@ -17,12 +17,18 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 & extract global backend error messages
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+
+    // Do not attempt to silent-refresh on auth endpoints to prevent masking credentials errors
+    const isAuthRequest = originalRequest.url?.includes('/auth/login') ||
+                          originalRequest.url?.includes('/auth/refresh') ||
+                          originalRequest.url?.includes('/auth/register');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
       try {
         // Exchange refresh token for a new access token
@@ -42,6 +48,13 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+
+    // Capture the backend's structured error message
+    const backendMessage = error.response?.data?.error?.message;
+    if (backendMessage) {
+      error.message = backendMessage;
+    }
+
     return Promise.reject(error);
   }
 );

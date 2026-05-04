@@ -95,7 +95,7 @@ export const refresh = async (c: Context) => {
           success: false,
           error: {
             code: 'UNAUTHORIZED',
-            message: 'No refresh token provided in cookies',
+            message: 'Session expired. Please log in again.',
           },
         },
         401

@@ -46,23 +46,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const login = async (email: string, password?: string) => {
-        const res = await apiClient.post("/v1/auth/login", { email, password });
-        if (res.data?.success && res.data?.data?.accessToken) {
-            tokenStore.set(res.data.data.accessToken);
-            setUser(res.data.data.user);
-        } else {
-            throw new Error(res.data?.error?.message || "Login failed");
+        try {
+            const res = await apiClient.post("/v1/auth/login", { email, password });
+            if (res.data?.success && res.data?.data?.accessToken) {
+                tokenStore.set(res.data.data.accessToken);
+                setUser(res.data.data.user);
+            } else {
+                throw new Error(res.data?.error?.message || "Login failed");
+            }
+        } catch (err: any) {
+            const backendError = err.response?.data?.error?.message;
+            if (backendError) {
+                throw new Error(backendError);
+            }
+            throw new Error(err.message || "Login failed");
         }
     };
 
     const signup = async (name: string, email: string, password?: string): Promise<{ emailSent: boolean }> => {
-        const res = await apiClient.post("/v1/auth/register", { name, email, password });
-        if (res.data?.success && res.data?.data?.accessToken) {
-            tokenStore.set(res.data.data.accessToken);
-            setUser(res.data.data.user);
-            return { emailSent: res.data.data.emailSent ?? false };
-        } else {
-            throw new Error(res.data?.error?.message || "Failed to create account");
+        try {
+            const res = await apiClient.post("/v1/auth/register", { name, email, password });
+            if (res.data?.success && res.data?.data?.accessToken) {
+                tokenStore.set(res.data.data.accessToken);
+                setUser(res.data.data.user);
+                return { emailSent: res.data.data.emailSent ?? false };
+            } else {
+                throw new Error(res.data?.error?.message || "Failed to create account");
+            }
+        } catch (err: any) {
+            const backendError = err.response?.data?.error?.message;
+            if (backendError) {
+                throw new Error(backendError);
+            }
+            throw new Error(err.message || "Failed to create account");
         }
     };
 
