@@ -97,17 +97,28 @@ const Landing = () => {
                 <p className="mt-2 text-muted-foreground">
                   Try it out! This is how your participants see and interact with your polls.
                 </p>
-                <div className="mt-6 flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent bg-primary">
-                        <Users className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                    ))}
+                {featuredPoll ? (
+                  <div className="mt-6 flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent bg-primary">
+                          <Users className="h-3 w-3 text-primary-foreground" />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                      +{featuredPoll.totalVotes}
+                    </span>
+                    <span className="text-sm text-muted-foreground">Recently voted</span>
                   </div>
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">+12</span>
-                  <span className="text-sm text-muted-foreground">Recently voted</span>
-                </div>
+                ) : (
+                  <div className="mt-6 flex items-center gap-2">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      0
+                    </span>
+                    <span className="text-sm text-muted-foreground">Recently voted</span>
+                  </div>
+                )}
               </div>
               <Card className="bg-card">
                 <CardContent className="p-6">

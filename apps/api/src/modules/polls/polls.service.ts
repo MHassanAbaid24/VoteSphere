@@ -291,7 +291,7 @@ export const closePoll = async (id: string, creatorId: string) => {
 };
 
 export const getFeaturedPoll = async () => {
-  const poll = await prisma.poll.findFirst({
+  const polls = await prisma.poll.findMany({
     where: {
       status: 'ACTIVE',
       visibility: 'PUBLIC',
@@ -315,6 +315,8 @@ export const getFeaturedPoll = async () => {
       },
     },
   });
+
+  const poll = polls.find((p) => p._count.votes >= 3);
 
   if (!poll) return null;
 
