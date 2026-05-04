@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { RegisterSchema, LoginSchema, VerifyEmailSchema, ResendVerificationSchema } from './auth.schema';
 import { validateBody } from '../../middleware/validation.middleware';
-import { register, login, refresh, logout, me, verify, resend } from './auth.controller';
+import { register, login, refresh, logout, me, verify, resend, googleLogin, googleCallback, githubLogin, githubCallback } from './auth.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 
 export const authRouter = new Hono();
@@ -26,3 +26,9 @@ authRouter.post('/verify-email', validateBody(VerifyEmailSchema), verify);
 
 // POST /resend-verification
 authRouter.post('/resend-verification', validateBody(ResendVerificationSchema), resend);
+
+// OAuth Endpoints
+authRouter.get('/google', googleLogin);
+authRouter.get('/google/callback', googleCallback);
+authRouter.get('/github', githubLogin);
+authRouter.get('/github/callback', githubCallback);

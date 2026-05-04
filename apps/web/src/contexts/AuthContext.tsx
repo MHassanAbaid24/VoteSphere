@@ -11,6 +11,7 @@ interface AuthContextType {
     signup: (name: string, email: string, password?: string) => Promise<{ emailSent: boolean }>;
     logout: () => void;
     refreshUser: () => Promise<void>;
+    loginWithToken: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,8 +108,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const loginWithToken = async (token: string) => {
+        tokenStore.set(token);
+        try {
+            const meRes = await apiClient.get("/v1/auth/me");
+            if (meRes.data?.success && meRes.data?.data?.user) {
+                setUser(meRes.data.data.user);
+            }
+        } catch (err) {
+            tokenStore.clear();
+            setUser(null);
+            throw err;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, refreshUser, loginWithToken }}>
             {children}
         </AuthContext.Provider>
     );

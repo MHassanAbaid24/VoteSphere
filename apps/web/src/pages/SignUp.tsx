@@ -355,8 +355,14 @@ const SignUp = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" type="button">Google</Button>
-                <Button variant="outline" type="button">GitHub</Button>
+                <Button variant="outline" type="button" onClick={() => {
+                  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                  window.location.href = `${backendUrl}/v1/auth/google`;
+                }}>Google</Button>
+                <Button variant="outline" type="button" onClick={() => {
+                  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                  window.location.href = `${backendUrl}/v1/auth/github`;
+                }}>GitHub</Button>
               </div>
             </CardContent>
           </Card>

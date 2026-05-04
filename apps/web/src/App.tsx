@@ -17,6 +17,7 @@ import VotePoll from "./pages/VotePoll";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/poll/:id/results" element={<PollResults />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Protected Routes — login required */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

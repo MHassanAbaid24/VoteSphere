@@ -12,6 +12,7 @@
     "@prisma/client": "^5.10.0",
     "@votesphere/types": "workspace:*",
     "@votesphere/zod-schemas": "workspace:*",
+    "arctic": "^3.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "hono": "^4.0.0",

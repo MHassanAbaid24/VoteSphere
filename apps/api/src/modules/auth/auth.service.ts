@@ -270,3 +270,87 @@ export const resendVerification = async (email: string): Promise<void> => {
 
   await sendVerificationEmail(user.email, verificationTokenString);
 };
+
+/**
+ * Handle a user logging in or signing up via OAuth
+ */
+export const handleOAuthUser = async (provider: 'google' | 'github', providerUserId: string, email: string, name: string): Promise<AuthResult> => {
+  // Check if an OAuthAccount with this provider and ID already exists
+  const existingAccount = await prisma.oauthAccount.findFirst({
+    where: { provider, providerUserId },
+    include: { user: true },
+  });
+
+  let user = existingAccount?.user || null;
+
+  if (!user) {
+    // Look up by email to link or create
+    const emailUser = await prisma.user.findFirst({
+      where: { email },
+    });
+
+    if (emailUser) {
+      user = emailUser;
+      // Mark as emailVerified if not already
+      if (!user.emailVerified) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { emailVerified: true },
+        });
+      }
+    } else {
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          emailVerified: true, // OAuth is pre-verified
+        },
+      });
+    }
+
+    // Associate the new or existing user with the OAuthAccount
+    await prisma.oauthAccount.create({
+      data: {
+        userId: user.id,
+        provider,
+        providerUserId,
+      },
+    });
+  }
+
+  // Generate tokens
+  const accessToken = await sign(
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      isPremium: user.isPremium,
+      exp: Math.floor(Date.now() / 1000) + 60 * 15, // 15 mins
+    },
+    env.JWT_SECRET,
+    'HS256'
+  );
+
+  const refreshTokenString = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: refreshTokenString,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
+  });
+
+  return {
+    accessToken,
+    refreshToken: refreshTokenString,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isPremium: user.isPremium,
+    },
+  };
+};

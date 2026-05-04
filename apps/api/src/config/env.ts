@@ -13,6 +13,10 @@ const envSchema = z.object({
   GMAIL_USER: z.string().optional(),
   GMAIL_APP_PASSWORD: z.string().optional(),
   APP_URL: z.string().default('http://localhost:8080'),
+  GOOGLE_CLIENT_ID: z.string().default('mock_google_client_id'),
+  GOOGLE_CLIENT_SECRET: z.string().default('mock_google_client_secret'),
+  GITHUB_CLIENT_ID: z.string().default('mock_github_client_id'),
+  GITHUB_CLIENT_SECRET: z.string().default('mock_github_client_secret'),
 });
 
 // Parse and validate environment variables

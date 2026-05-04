@@ -118,6 +118,22 @@ const Login = () => {
               </Button>
             </form>
 
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-4 text-xs uppercase tracking-wider text-muted-foreground">Or continue with</span></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <Button variant="outline" type="button" onClick={() => {
+                const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                window.location.href = `${backendUrl}/v1/auth/google`;
+              }}>Google</Button>
+              <Button variant="outline" type="button" onClick={() => {
+                const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                window.location.href = `${backendUrl}/v1/auth/github`;
+              }}>GitHub</Button>
+            </div>
+
             <div className="mt-6 border-t border-border pt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link to="/signup" className="font-medium text-primary hover:underline">Sign up for free</Link>
