@@ -48,8 +48,8 @@ const Navbar = ({ variant = "landing" }: NavbarProps) => {
               My Polls
             </Link>
             <Link
-              to="/dashboard"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              to="/community"
+              className={`text-sm ${location.pathname === "/community" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
             >
               Community
             </Link>
