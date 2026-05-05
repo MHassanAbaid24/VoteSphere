@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,11 @@ import { Users, Calendar, Share2, ArrowLeft, Loader2, Info } from "lucide-react"
 import { usePoll } from "@/hooks/use-polls";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Use refetchInterval: 3000 to simulate live updates every 3 seconds
   const { data: poll, isLoading, isRefetching } = usePoll(id || "");
@@ -51,7 +54,20 @@ const PollResults = () => {
           {/* Cover Header */}
           <div className="relative h-48 overflow-hidden rounded-t-lg bg-muted">
             {poll.coverImage ? (
-              <img src={poll.coverImage} alt="Cover" className="h-full w-full object-cover" />
+              <>
+                {!imageLoaded && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-muted via-accent/30 to-muted animate-shimmer bg-[length:200%_100%]" />
+                )}
+                <img
+                  src={poll.coverImage}
+                  alt={imageLoaded ? "Cover" : ""}
+                  onLoad={() => setImageLoaded(true)}
+                  className={cn(
+                    "h-full w-full object-cover transition-opacity duration-500",
+                    imageLoaded ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              </>
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20" />
             )}

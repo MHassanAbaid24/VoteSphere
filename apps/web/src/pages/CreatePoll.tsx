@@ -17,6 +17,7 @@ import { useCreatePoll } from "@/hooks/use-polls";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/httpClient";
+import { cn } from "@/lib/utils";
 
 // Form Validation Schema
 const pollSchema = z.object({
@@ -40,6 +41,7 @@ const CreatePoll = () => {
   const createMutation = useCreatePoll();
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const form = useForm<PollFormValues>({
     resolver: zodResolver(pollSchema),
@@ -67,6 +69,7 @@ const CreatePoll = () => {
         return;
       }
       setSelectedFile(file);
+      setImageLoaded(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         setBase64Image(reader.result as string);
@@ -135,7 +138,20 @@ const CreatePoll = () => {
                   onClick={() => document.getElementById("cover-upload")?.click()}
                 >
                   {base64Image ? (
-                    <img src={base64Image} alt="Cover" className="h-full w-full object-cover" />
+                    <>
+                      {!imageLoaded && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-muted via-accent/30 to-muted animate-shimmer bg-[length:200%_100%]" />
+                      )}
+                      <img
+                        src={base64Image}
+                        alt={imageLoaded ? "Cover" : ""}
+                        onLoad={() => setImageLoaded(true)}
+                        className={cn(
+                          "h-full w-full object-cover transition-opacity duration-500",
+                          imageLoaded ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                    </>
                   ) : (
                     <>
                       <ImageIcon className="h-8 w-8 text-muted-foreground group-hover:text-primary" />
