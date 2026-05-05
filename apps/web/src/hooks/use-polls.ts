@@ -19,6 +19,15 @@ export const usePoll = (id: string) => {
     });
 };
 
+export const useTrendingPolls = (limit: number = 10) => {
+    return useQuery({
+        queryKey: ["trendingPolls", limit],
+        queryFn: () => api.getTrendingPolls(limit),
+        refetchInterval: 5000,
+        refetchIntervalInBackground: true,
+    });
+};
+
 export const useCreatePoll = () => {
     const queryClient = useQueryClient();
     return useMutation({

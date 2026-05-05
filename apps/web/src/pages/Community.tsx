@@ -17,7 +17,10 @@ import {
   TrendingUp,
   Flame,
   Inbox,
+  Loader2
 } from "lucide-react";
+import { useTrendingPolls } from "@/hooks/use-polls";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Poll {
   id: string;
@@ -38,7 +41,7 @@ interface Poll {
 
 const Community = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
-  const [trending, setTrending] = useState<Poll[]>([]);
+  const { data: trendingPolls = [], isLoading: trendingLoading } = useTrendingPolls(5);
   const [categories, setCategories] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -51,17 +54,6 @@ const Community = () => {
       const res = await apiClient.get("/v1/community/categories");
       if (res.data?.success) {
         setCategories(res.data.data || []);
-      }
-    } catch (err) {
-      // Silently fail or log
-    }
-  };
-
-  const fetchTrending = async () => {
-    try {
-      const res = await apiClient.get("/v1/community/trending?limit=5");
-      if (res.data?.success) {
-        setTrending(res.data.data || []);
       }
     } catch (err) {
       // Silently fail or log
@@ -94,7 +86,6 @@ const Community = () => {
 
   useEffect(() => {
     fetchCategories();
-    fetchTrending();
   }, []);
 
   useEffect(() => {
@@ -240,27 +231,54 @@ const Community = () => {
             </div>
 
             <Card className="bg-card">
-              <CardContent className="p-4 grid gap-4">
-                {trending.length > 0 ? (
-                  trending.map((p, idx) => (
-                    <div key={p.id} className="flex items-start gap-3 border-b border-border/50 last:border-0 pb-3 last:pb-0">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-orange-100 text-xs font-bold text-orange-600">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 overflow-hidden">
-                        <Link to={`/poll/${p.id}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors block truncate">
-                          {p.title}
-                        </Link>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {p.totalVotes} votes</span>
-                          {p.category && <span className="truncate">{p.category}</span>}
-                        </div>
-                      </div>
+              <CardContent className="p-4">
+                <div className="grid gap-4">
+                  {trendingLoading ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No trending activity yet.</p>
-                )}
+                  ) : trendingPolls.length > 0 ? (
+                    <AnimatePresence mode="popLayout">
+                      {trendingPolls.map((p, idx) => (
+                        <motion.div
+                          layout
+                          key={p.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 350,
+                            damping: 30,
+                            mass: 1,
+                            layout: { duration: 0.5, ease: "easeInOut" }
+                          }}
+                          className="flex items-start gap-3 border-b border-border/50 last:border-0 pb-3 last:pb-0 bg-card"
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-orange-100 text-[10px] font-bold text-orange-600 transition-colors">
+                            {idx + 1}
+                          </span>
+                          <div className="flex-1 overflow-hidden">
+                            <Link
+                              to={`/poll/${p.id}`}
+                              className="text-sm font-semibold text-foreground hover:text-primary transition-colors block truncate"
+                            >
+                              {p.title}
+                            </Link>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                              <span className="flex items-center gap-1">
+                                <TrendingUp className="h-3 w-3" /> {p.totalVotes}
+                              </span>
+                              {p.category && <span className="truncate">{p.category}</span>}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No trending activity yet.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

@@ -118,5 +118,18 @@ export const api = {
             console.error("Error fetching global stats:", err);
             return { totalPolls: 0, totalVotes: 0, activePolls: 0 };
         }
+    },
+
+    getTrendingPolls: async (limit: number = 10): Promise<Poll[]> => {
+        try {
+            const res = await apiClient.get(`/v1/community/trending?limit=${limit}`);
+            if (res.data?.success && Array.isArray(res.data.data)) {
+                return res.data.data.map(mapPoll);
+            }
+            return [];
+        } catch (err) {
+            console.error("Error fetching trending polls:", err);
+            return [];
+        }
     }
 };
