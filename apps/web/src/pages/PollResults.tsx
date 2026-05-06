@@ -410,7 +410,7 @@ const PollResults = () => {
       </main>
 
       <footer className="py-8 text-center text-sm text-muted-foreground">
-        © 2024 VoteSphere. Results are calculated in real-time.
+        © 2026 VoteSphere. Results are calculated in real-time.
       </footer>
     </div>
   );

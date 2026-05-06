@@ -197,7 +197,7 @@ const Landing = () => {
             <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
           </nav>
-          <span>© 2024 VoteSphere. Built for builders.</span>
+          <span>© 2026 VoteSphere. Built for builders.</span>
         </div>
       </footer>
     </div>

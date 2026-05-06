@@ -146,7 +146,7 @@ const Login = () => {
         <div className="flex justify-center gap-6">
           <span>Privacy Policy</span><span>Terms of Service</span>
         </div>
-        <p className="mt-2">© 2024 VoteSphere Inc. All rights reserved.</p>
+        <p className="mt-2">© 2026 VoteSphere Inc. All rights reserved.</p>
       </footer>
     </div>
   );

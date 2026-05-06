@@ -371,7 +371,7 @@ const SignUp = () => {
             Already have an account? <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
           </p>
           <p className="mt-4 text-center text-xs uppercase tracking-wider text-muted-foreground">
-            © 2024 VoteSphere Inc. All rights reserved.
+            © 2026 VoteSphere Inc. All rights reserved.
           </p>
         </div>
       </main>
