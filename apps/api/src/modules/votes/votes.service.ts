@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { invalidateCache } from '../../lib/cache';
+import { createNotification } from '../notifications/notifications.service';
 
 export const castVote = async (pollId: string, userId: string, answers: { questionId: string; optionId: string }[]) => {
   // 1. Fetch poll (throw on missing/soft-deleted)
@@ -90,6 +91,20 @@ export const castVote = async (pollId: string, userId: string, answers: { questi
   await invalidateCache('poll:featured');
   await invalidateCache('polls:trending:5');
   await invalidateCache('polls:trending:10');
+
+  // Dispatch vote notification to the poll creator
+  try {
+    await createNotification(
+      poll.creatorId,
+      'VOTE_RECEIVED',
+      'New vote!',
+      `Someone voted on your poll "${poll.title}".`,
+      `/poll/${pollId}/results`,
+      pollId
+    );
+  } catch (err: any) {
+    console.warn(`⚠️ Failed to trigger notification for vote on poll ${pollId}:`, err.message);
+  }
 
   return { message: 'Vote cast successfully' };
 };

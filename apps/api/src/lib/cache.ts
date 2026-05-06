@@ -130,6 +130,19 @@ export const isRedisHealthy = (): boolean => {
 };
 
 /**
+ * Publish a message to a Redis channel cleanly.
+ */
+export const publishToRedis = async (channel: string, message: string): Promise<void> => {
+  if (redis && (redisHealthy || redis.status === 'ready' || redis.status === 'connecting')) {
+    try {
+      await redis.publish(channel, message);
+    } catch (err: any) {
+      console.warn(`⚠️ Redis publish error on channel "${channel}":`, err.message);
+    }
+  }
+};
+
+/**
  * A robust caching utility utilizing Redis with automatic silent fallback to in-memory caching.
  */
 export const withCache = async <T>(
