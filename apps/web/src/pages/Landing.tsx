@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,10 +7,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckSquare, MousePointerClick, BarChart3, Users } from "lucide-react";
 import heroImage from "@/assets/hero-illustration.jpg";
 import { apiClient } from "@/lib/httpClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Landing = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [featuredPoll, setFeaturedPoll] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   useEffect(() => {
     const fetchFeatured = async () => {

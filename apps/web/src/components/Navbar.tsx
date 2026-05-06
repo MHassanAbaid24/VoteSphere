@@ -83,7 +83,7 @@ const Navbar = ({ variant = "landing" }: NavbarProps) => {
   return (
     <header className="border-b border-border bg-card">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor" className="text-primary-foreground" />
