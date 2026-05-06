@@ -92,6 +92,30 @@ const PollResults = () => {
     );
   }
 
+  const isOwner = user && poll.creatorId === user.id;
+
+  if (!isOwner) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar variant="app" />
+        <main className="container mx-auto flex justify-center px-6 py-12">
+          <Card className="w-full max-w-md p-8 text-center border-destructive/20 bg-destructive/5 shadow-lg rounded-2xl">
+            <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+            <h2 className="mt-4 text-xl font-bold text-foreground">Access Denied</h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              Only the creator of this poll is authorized to view its detailed analytical results.
+            </p>
+            <Button className="mt-6 w-full" asChild>
+              <Link to="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+              </Link>
+            </Button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar variant="app" />

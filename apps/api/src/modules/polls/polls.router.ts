@@ -317,6 +317,28 @@ pollsRouter.post('/:id/cover', authMiddleware, async (c) => {
 // Real-Time Results Stream (Server-Sent Events with Pub/Sub & Polling Hybrid)
 pollsRouter.get('/:id/stream', async (c) => {
   const id = c.req.param('id');
+  const poll = await pollsService.getPollById(id).catch(() => null);
+
+  if (!poll) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Poll not found' } }, 404);
+  }
+
+  // Extract potential logged-in user to check ownership (supports query token fallback for EventSource)
+  const authHeader = c.req.header('Authorization') || c.req.query('token');
+  let userId: string | undefined;
+
+  if (authHeader) {
+    try {
+      const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+      const payload = (await verify(token, env.JWT_SECRET, 'HS256')) as any;
+      userId = payload.sub;
+    } catch (err) {}
+  }
+
+  if (!userId || userId !== poll.creatorId) {
+    return c.json({ success: false, error: { code: 'FORBIDDEN', message: 'Only the creator of this poll is authorized to view its results stream.' } }, 403);
+  }
+
   const channel = `poll:${id}`;
 
   return streamSSE(c, async (stream) => {
