@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { invalidateCache } from '../../lib/cache';
 
 export const castVote = async (pollId: string, userId: string, answers: { questionId: string; optionId: string }[]) => {
   // 1. Fetch poll (throw on missing/soft-deleted)
@@ -84,6 +85,11 @@ export const castVote = async (pollId: string, userId: string, answers: { questi
       data: { totalVotes: { increment: 1 } },
     });
   });
+
+  await invalidateCache(`poll:${pollId}`);
+  await invalidateCache('poll:featured');
+  await invalidateCache('polls:trending:5');
+  await invalidateCache('polls:trending:10');
 
   return { message: 'Vote cast successfully' };
 };

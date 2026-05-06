@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { CreatePollInput, UpdatePollInput } from './polls.schema';
 import { generateSignedUrl } from '../../lib/s3';
+import { withCache, invalidateCache } from '../../lib/cache';
 
 /**
  * Helper function to convert poll coverImage URL to signed URL if it exists
@@ -111,29 +112,31 @@ export const getPolls = async (filters: {
 };
 
 export const getPollById = async (id: string) => {
-  const poll = await prisma.poll.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      questions: {
-        include: {
-          options: true,
+  return withCache(`poll:${id}`, 300, async () => {
+    const poll = await prisma.poll.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        questions: {
+          include: {
+            options: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
+    });
+
+    if (!poll) {
+      throw new Error('Poll not found or has been deleted');
+    }
+
+    return enrichPollWithSignedUrl(poll);
   });
-
-  if (!poll) {
-    throw new Error('Poll not found or has been deleted');
-  }
-
-  return enrichPollWithSignedUrl(poll);
 };
 
 export const updatePoll = async (id: string, creatorId: string, input: UpdatePollInput) => {
@@ -175,6 +178,11 @@ export const updatePoll = async (id: string, creatorId: string, input: UpdatePol
     },
   });
 
+  await invalidateCache(`poll:${id}`);
+  await invalidateCache('poll:featured');
+  await invalidateCache('polls:trending:5');
+  await invalidateCache('polls:trending:10');
+
   return updatedPoll;
 };
 
@@ -197,6 +205,11 @@ export const deletePoll = async (id: string, creatorId: string) => {
       deletedAt: new Date(),
     },
   });
+
+  await invalidateCache(`poll:${id}`);
+  await invalidateCache('poll:featured');
+  await invalidateCache('polls:trending:5');
+  await invalidateCache('polls:trending:10');
 };
 
 export const getMyPolls = async (creatorId: string, filters: {
@@ -286,6 +299,11 @@ export const publishPoll = async (id: string, creatorId: string) => {
     },
   });
 
+  await invalidateCache(`poll:${id}`);
+  await invalidateCache('poll:featured');
+  await invalidateCache('polls:trending:5');
+  await invalidateCache('polls:trending:10');
+
   return updatedPoll;
 };
 
@@ -309,43 +327,50 @@ export const closePoll = async (id: string, creatorId: string) => {
     },
   });
 
+  await invalidateCache(`poll:${id}`);
+  await invalidateCache('poll:featured');
+  await invalidateCache('polls:trending:5');
+  await invalidateCache('polls:trending:10');
+
   return updatedPoll;
 };
 
 export const getFeaturedPoll = async () => {
-  const polls = await prisma.poll.findMany({
-    where: {
-      status: 'ACTIVE',
-      visibility: 'PUBLIC',
-      deletedAt: null,
-    },
-    orderBy: {
-      votes: {
-        _count: 'desc',
+  return withCache('poll:featured', 60, async () => {
+    const polls = await prisma.poll.findMany({
+      where: {
+        status: 'ACTIVE',
+        visibility: 'PUBLIC',
+        deletedAt: null,
       },
-    },
-    include: {
-      questions: {
-        include: {
-          options: true,
+      orderBy: {
+        votes: {
+          _count: 'desc',
         },
       },
-      _count: {
-        select: {
-          votes: true,
+      include: {
+        questions: {
+          include: {
+            options: true,
+          },
+        },
+        _count: {
+          select: {
+            votes: true,
+          },
         },
       },
-    },
+    });
+
+    const poll = polls.find((p) => p._count.votes >= 3);
+
+    if (!poll) return null;
+
+    const enrichedPoll = await enrichPollWithSignedUrl({
+      ...poll,
+      totalVotes: poll._count.votes,
+    });
+
+    return enrichedPoll;
   });
-
-  const poll = polls.find((p) => p._count.votes >= 3);
-
-  if (!poll) return null;
-
-  const enrichedPoll = await enrichPollWithSignedUrl({
-    ...poll,
-    totalVotes: poll._count.votes,
-  });
-
-  return enrichedPoll;
 };

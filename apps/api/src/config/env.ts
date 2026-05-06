@@ -21,6 +21,7 @@ const envSchema = z.object({
   AWS_S3_BUCKET: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  REDIS_URL: z.string().optional(),
 });
 
 // Parse and validate environment variables

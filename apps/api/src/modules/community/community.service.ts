@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { withCache } from '../../lib/cache';
 
 export const getCategories = () => {
   return ['Technology', 'Sports', 'Politics', 'Entertainment', 'Science', 'Business', 'Other'];
@@ -63,43 +64,45 @@ export const getFeed = async (filters: { page?: number; limit?: number }) => {
 };
 
 export const getTrending = async (limit: number = 10) => {
-  const polls = await prisma.poll.findMany({
-    where: {
-      deletedAt: null,
-      status: 'ACTIVE',
-      visibility: 'PUBLIC',
-    },
-    take: limit,
-    orderBy: {
-      votes: {
-        _count: 'desc',
+  return withCache(`polls:trending:${limit}`, 10, async () => {
+    const polls = await prisma.poll.findMany({
+      where: {
+        deletedAt: null,
+        status: 'ACTIVE',
+        visibility: 'PUBLIC',
       },
-    },
-    include: {
-      questions: {
-        include: {
-          options: true,
+      take: limit,
+      orderBy: {
+        votes: {
+          _count: 'desc',
         },
       },
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+      include: {
+        questions: {
+          include: {
+            options: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            votes: true,
+          },
         },
       },
-      _count: {
-        select: {
-          votes: true,
-        },
-      },
-    },
-  });
+    });
 
-  return polls.map((p) => ({
-    ...p,
-    totalVotes: p._count.votes,
-  }));
+    return polls.map((p) => ({
+      ...p,
+      totalVotes: p._count.votes,
+    }));
+  });
 };
 
 export const search = async (filters: {

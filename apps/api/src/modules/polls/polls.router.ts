@@ -300,30 +300,21 @@ pollsRouter.get('/:id/stream', async (c) => {
     });
 
     while (active) {
-      const poll = await prisma.poll.findFirst({
-        where: { id },
-        include: {
-          questions: {
-            include: {
-              options: true,
-            },
-          },
-        },
-      });
+      try {
+        const poll = await pollsService.getPollById(id);
 
-      if (!poll) {
         await stream.writeSSE({
-          data: JSON.stringify({ error: 'Poll not found' }),
+          data: JSON.stringify(poll),
+          event: 'message',
+          id: String(Date.now()),
+        });
+      } catch (err: any) {
+        await stream.writeSSE({
+          data: JSON.stringify({ error: err.message || 'Poll not found' }),
           event: 'error',
         });
         break;
       }
-
-      await stream.writeSSE({
-        data: JSON.stringify(poll),
-        event: 'message',
-        id: String(Date.now()),
-      });
 
       await stream.sleep(3000);
     }
