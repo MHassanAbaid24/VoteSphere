@@ -28,8 +28,53 @@ usersRouter.delete('/me', authMiddleware, async (c) => {
   }
 });
 
-usersRouter.get('/me/preferences', (c) => c.json({ success: true, data: null }));
-usersRouter.put('/me/preferences', (c) => c.json({ success: true, data: null }));
+usersRouter.get('/me/preferences', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as any);
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    let prefs = await prisma.userPreferences.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!prefs) {
+      prefs = await prisma.userPreferences.create({
+        data: {
+          userId: user.id,
+          categories: [],
+        },
+      });
+    }
+
+    return c.json({ success: true, data: prefs });
+  } catch (err: any) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: err.message } }, 400);
+  }
+});
+
+usersRouter.put('/me/preferences', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as any);
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    const body = await c.req.json();
+    const categories = Array.isArray(body.categories) ? body.categories : [];
+
+    const prefs = await prisma.userPreferences.upsert({
+      where: { userId: user.id },
+      update: { categories },
+      create: { userId: user.id, categories },
+    });
+
+    return c.json({ success: true, data: prefs });
+  } catch (err: any) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: err.message } }, 400);
+  }
+});
 
 usersRouter.get('/me/notifications', (c) => c.json({ success: true, data: null }));
 usersRouter.patch('/me/notifications/read-all', (c) => c.json({ success: true, data: null }));

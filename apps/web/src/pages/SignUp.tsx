@@ -81,7 +81,7 @@ const SignUp = () => {
           clearInterval(intervalId);
           await refreshUser();
           toast.success("Email verified successfully! Redirecting...");
-          navigate("/dashboard", { replace: true });
+          navigate("/onboarding", { replace: true });
         }
       } catch (err) {
         // Suppress any polling fetch errors

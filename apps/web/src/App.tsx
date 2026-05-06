@@ -23,6 +23,7 @@ import Community from "./pages/Community";
 import AboutUs from "./pages/AboutUs";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             {/* Protected Routes — login required */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/my-polls" element={<ProtectedRoute><MyPolls /></ProtectedRoute>} />
+            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
             {/* Protected + Verified Routes — email verification required */}
             <Route path="/create-poll" element={<ProtectedRoute><VerifiedRoute><CreatePoll /></VerifiedRoute></ProtectedRoute>} />

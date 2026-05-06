@@ -5,11 +5,23 @@ export const getCategories = () => {
   return ['Technology', 'Sports', 'Politics', 'Entertainment', 'Science', 'Business', 'Other'];
 };
 
-export const getFeed = async (filters: { page?: number; limit?: number }) => {
+export const getFeed = async (filters: { page?: number; limit?: number; userId?: string }) => {
   const page = Number(filters.page) || 1;
   const limit = Number(filters.limit) || 20;
   const skip = (page - 1) * limit;
 
+  // 1. Fetch user's preferred categories if userId is provided
+  let preferredCategories: string[] = [];
+  if (filters.userId) {
+    const prefs = await prisma.userPreferences.findUnique({
+      where: { userId: filters.userId },
+    });
+    if (prefs && prefs.categories) {
+      preferredCategories = prefs.categories;
+    }
+  }
+
+  // 2. Fetch all matching active polls
   const [polls, total] = await Promise.all([
     prisma.poll.findMany({
       where: {
@@ -17,9 +29,6 @@ export const getFeed = async (filters: { page?: number; limit?: number }) => {
         status: 'ACTIVE',
         visibility: 'PUBLIC',
       },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
       include: {
         questions: {
           include: {
@@ -49,11 +58,32 @@ export const getFeed = async (filters: { page?: number; limit?: number }) => {
     }),
   ]);
 
-  return {
-    polls: polls.map((p) => ({
+  // 3. Score and sort polls if preferredCategories are specified
+  const enrichedPolls = polls.map((p) => {
+    const totalVotes = p._count.votes;
+    const isPreferred = p.category && preferredCategories.includes(p.category);
+    // Score formula: matching preferred category gets 2.5x score boost
+    const score = (totalVotes + 1) * (isPreferred ? 2.5 : 1.0);
+    return {
       ...p,
-      totalVotes: p._count.votes,
-    })),
+      totalVotes,
+      score,
+    };
+  });
+
+  // Sort by score first, then newest
+  enrichedPolls.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  // Apply pagination in-memory
+  const paginatedPolls = enrichedPolls.slice(skip, skip + limit);
+
+  return {
+    polls: paginatedPolls,
     pagination: {
       total,
       page,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   ExternalLink,
   Trash2,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePolls } from "@/hooks/use-polls";
@@ -43,6 +44,36 @@ const Profile = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const categoriesList = ["Technology", "Sports", "Politics", "Entertainment", "Science", "Business", "Health", "Education"];
+
+  useEffect(() => {
+    apiClient.get("/v1/users/me/preferences").then((res) => {
+      if (res.data?.success && res.data?.data?.categories) {
+        setSelectedCategories(res.data.data.categories);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleToggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const handleSavePreferences = async () => {
+    setSavingPrefs(true);
+    try {
+      await apiClient.put("/v1/users/me/preferences", { categories: selectedCategories });
+      toast.success("Preferences saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save preferences.");
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
 
   // 1. Filter polls created by this user
   const myPolls = allPolls?.filter(p => p.creatorId === user?.id) || [];
@@ -146,6 +177,46 @@ const Profile = () => {
                   <UserCheck className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Verified Creator</span>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Topic Interests
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Select your interest categories to personalize your feed.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {categoriesList.map((cat) => {
+                    const isSelected = selectedCategories.includes(cat);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => handleToggleCategory(cat)}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-all ${isSelected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                          }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button size="sm" className="w-full text-xs font-bold mt-2" onClick={handleSavePreferences} disabled={savingPrefs}>
+                  {savingPrefs ? (
+                    <>
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save Preferences"
+                  )}
+                </Button>
               </CardContent>
             </Card>
 

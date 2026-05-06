@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { verify } from 'hono/jwt';
+import { env } from '../../config/env';
 import * as communityService from './community.service';
 
 export const communityRouter = new Hono();
@@ -8,9 +10,21 @@ communityRouter.get('/feed', async (c) => {
     const page = c.req.query('page');
     const limit = c.req.query('limit');
 
+    const authHeader = c.req.header('Authorization');
+    let userId: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const payload = (await verify(token, env.JWT_SECRET, 'HS256')) as any;
+        userId = payload.sub;
+      } catch (err) {}
+    }
+
     const result = await communityService.getFeed({
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
+      userId,
     });
 
     return c.json({
