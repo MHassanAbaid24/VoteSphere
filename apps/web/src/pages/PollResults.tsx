@@ -39,7 +39,7 @@ const PollResults = () => {
             setDemographics(res.data.data);
           }
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoadingDemographics(false));
     }
   }, [id, user]);
@@ -143,12 +143,12 @@ const PollResults = () => {
                 const questions = poll.questions && poll.questions.length > 0
                   ? poll.questions
                   : [
-                      {
-                        id: "default",
-                        text: "Results",
-                        options: poll.options,
-                      },
-                    ];
+                    {
+                      id: "default",
+                      text: "Results",
+                      options: poll.options,
+                    },
+                  ];
 
                 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                 return questions.map((q: any, qIdx: number) => {
@@ -362,7 +362,7 @@ const PollResults = () => {
                     <Sparkles className="h-5 w-5 text-primary shrink-0 animate-pulse" /> Upgrade to VoteSphere Pro
                   </DialogTitle>
                   <DialogDescription className="pt-2 leading-relaxed text-sm">
-                    Are you sure you want to become a **Premium Member**? 
+                    Are you sure you want to become a **Premium Member**?
                     Upgrading to VoteSphere Pro instantly unlocks:
                   </DialogDescription>
                   <div className="mt-4 space-y-2.5 text-xs text-foreground bg-muted/30 p-3.5 rounded-lg border border-border/40">

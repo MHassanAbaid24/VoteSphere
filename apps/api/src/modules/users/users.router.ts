@@ -110,6 +110,45 @@ usersRouter.put('/me/preferences', authMiddleware, async (c) => {
   }
 });
 
+usersRouter.get('/me/demographics', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as any);
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    const demo = await prisma.userDemographic.findUnique({
+      where: { userId: user.id },
+    });
+
+    return c.json({ success: true, data: demo });
+  } catch (err: any) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: err.message } }, 400);
+  }
+});
+
+usersRouter.put('/me/demographics', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as any);
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    const body = await c.req.json();
+    const { ageRange, country, gender } = body;
+
+    const demo = await prisma.userDemographic.upsert({
+      where: { userId: user.id },
+      update: { ageRange, country, gender },
+      create: { userId: user.id, ageRange, country, gender },
+    });
+
+    return c.json({ success: true, data: demo });
+  } catch (err: any) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: err.message } }, 400);
+  }
+});
+
 usersRouter.get('/me/notifications', (c) => c.json({ success: true, data: null }));
 usersRouter.patch('/me/notifications/read-all', (c) => c.json({ success: true, data: null }));
 usersRouter.patch('/me/notifications/:id', (c) => c.json({ success: true, data: null }));

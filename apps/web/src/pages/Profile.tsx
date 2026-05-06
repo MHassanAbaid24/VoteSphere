@@ -29,12 +29,14 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePolls } from "@/hooks/use-polls";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/httpClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Profile = () => {
   const { user, logout } = useAuth();
@@ -49,13 +51,38 @@ const Profile = () => {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const categoriesList = ["Technology", "Sports", "Politics", "Entertainment", "Science", "Business", "Health", "Education"];
 
+  const [ageRange, setAgeRange] = useState("");
+  const [gender, setGender] = useState("");
+  const [country, setCountry] = useState("");
+  const [savingDemo, setSavingDemo] = useState(false);
+
   useEffect(() => {
     apiClient.get("/v1/users/me/preferences").then((res) => {
       if (res.data?.success && res.data?.data?.categories) {
         setSelectedCategories(res.data.data.categories);
       }
     }).catch(() => {});
+
+    apiClient.get("/v1/users/me/demographics").then((res) => {
+      if (res.data?.success && res.data?.data) {
+        setAgeRange(res.data.data.ageRange || "");
+        setGender(res.data.data.gender || "");
+        setCountry(res.data.data.country || "");
+      }
+    }).catch(() => {});
   }, []);
+
+  const handleSaveDemographics = async () => {
+    setSavingDemo(true);
+    try {
+      await apiClient.put("/v1/users/me/demographics", { ageRange, gender, country });
+      toast.success("Demographic details updated successfully!");
+    } catch {
+      toast.error("Failed to update demographic details.");
+    } finally {
+      setSavingDemo(false);
+    }
+  };
 
   const handleToggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
@@ -177,6 +204,106 @@ const Profile = () => {
                   <UserCheck className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Verified Creator</span>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-primary" /> Demographic Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3.5 text-xs">
+                  <div className="flex justify-between border-b pb-1.5 border-border/50">
+                    <span className="text-muted-foreground font-medium">Age Range:</span>
+                    <span className="font-semibold text-foreground">{ageRange || "Not set"}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-1.5 border-border/50">
+                    <span className="text-muted-foreground font-medium">Gender:</span>
+                    <span className="font-semibold text-foreground">{gender || "Not set"}</span>
+                  </div>
+                  <div className="flex justify-between pb-1">
+                    <span className="text-muted-foreground font-medium">Country:</span>
+                    <span className="font-semibold text-foreground">{country || "Not set"}</span>
+                  </div>
+                </div>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="w-full text-xs font-bold mt-2">
+                      Edit Demographics
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-primary" /> Edit Demographics
+                      </DialogTitle>
+                      <DialogDescription className="pt-1.5 leading-relaxed text-sm text-left">
+                        Keep your demographic details updated. This helps generate accurate, aggregated voter statistics.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-3 text-left">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Age Range</label>
+                        <Select value={ageRange} onValueChange={setAgeRange}>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select age range" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="18-24">18-24 years old</SelectItem>
+                            <SelectItem value="25-34">25-34 years old</SelectItem>
+                            <SelectItem value="35-44">35-44 years old</SelectItem>
+                            <SelectItem value="45-54">45-54 years old</SelectItem>
+                            <SelectItem value="55+">55+ years old</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gender Identity</label>
+                        <Select value={gender} onValueChange={setGender}>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Non-binary">Non-binary</SelectItem>
+                            <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Location (Country)</label>
+                        <Select value={country} onValueChange={setCountry}>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select country" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="United States">United States</SelectItem>
+                            <SelectItem value="Germany">Germany</SelectItem>
+                            <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                            <SelectItem value="France">France</SelectItem>
+                            <SelectItem value="Spain">Spain</SelectItem>
+                            <SelectItem value="Canada">Canada</SelectItem>
+                            <SelectItem value="Australia">Australia</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button onClick={handleSaveDemographics} className="w-full font-bold" disabled={savingDemo}>
+                        {savingDemo ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                          </>
+                        ) : (
+                          "Save Demographic Details"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 

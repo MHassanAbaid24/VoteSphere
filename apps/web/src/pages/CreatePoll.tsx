@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 const pollSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
+  category: z.string().min(1, "Please select a category"),
   questions: z.array(
     z.object({
       text: z.string().min(1, "Question text cannot be empty"),
@@ -149,6 +150,7 @@ const CreatePoll = () => {
     defaultValues: {
       title: "",
       description: "",
+      category: "Technology",
       questions: [
         {
           text: "",
@@ -193,6 +195,7 @@ const CreatePoll = () => {
         creatorId: user.id,
         title: data.title,
         description: data.description,
+        category: data.category,
         visibility: data.visibility,
         status: "active",
         expiresAt: new Date(Date.now() + parseInt(data.duration) * 24 * 60 * 60 * 1000).toISOString(),
@@ -305,6 +308,33 @@ const CreatePoll = () => {
                       <FormControl>
                         <Textarea placeholder="Provide context for your voters..." rows={3} {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Technology">Technology</SelectItem>
+                          <SelectItem value="Sports">Sports</SelectItem>
+                          <SelectItem value="Politics">Politics</SelectItem>
+                          <SelectItem value="Entertainment">Entertainment</SelectItem>
+                          <SelectItem value="Science">Science</SelectItem>
+                          <SelectItem value="Business">Business</SelectItem>
+                          <SelectItem value="Health">Health</SelectItem>
+                          <SelectItem value="Education">Education</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
