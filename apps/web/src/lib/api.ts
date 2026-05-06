@@ -59,7 +59,7 @@ export const api = {
                 status: "ACTIVE",
                 category: pollData.category,
                 expiresAt: pollData.expiresAt,
-                questions: [
+                questions: pollData.questions || [
                     {
                         text: "Default Question",
                         options: pollData.options.map(opt => ({ text: opt.text }))

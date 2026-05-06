@@ -23,17 +23,118 @@ import { cn } from "@/lib/utils";
 const pollSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  options: z.array(
+  questions: z.array(
     z.object({
-      text: z.string().min(1, "Option text cannot be empty"),
+      text: z.string().min(1, "Question text cannot be empty"),
+      options: z.array(
+        z.object({
+          text: z.string().min(1, "Option text cannot be empty"),
+        })
+      ).min(2, "You must provide at least two options"),
     })
-  ).min(2, "You must provide at least two options"),
+  ).min(1, "At least one question is required"),
   visibility: z.enum(["public", "private"]),
   duration: z.string(),
   anonymous: z.boolean(),
 });
 
 type PollFormValues = z.infer<typeof pollSchema>;
+
+const QuestionFormCard = ({
+  qIndex,
+  removeQuestion,
+  form,
+  canDelete,
+}: {
+  qIndex: number;
+  removeQuestion: () => void;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  form: any;
+  canDelete: boolean;
+}) => {
+  const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
+    name: `questions.${qIndex}.options`,
+    control: form.control,
+  });
+
+  return (
+    <Card className="border-primary/10 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="flex items-center gap-2 text-md font-bold text-primary">
+          <List className="h-4 w-4" /> Question #{qIndex + 1}
+        </CardTitle>
+        {canDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={removeQuestion}
+            className="text-muted-foreground hover:text-destructive gap-1"
+          >
+            <Trash2 className="h-4 w-4" /> Remove Question
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <FormField
+          control={form.control}
+          name={`questions.${qIndex}.text`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Question Text</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. Which product priority do you favor?" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-3 pt-2">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Answer Options</Label>
+          {optionFields.map((optField, oIndex) => (
+            <FormField
+              key={optField.id}
+              control={form.control}
+              name={`questions.${qIndex}.options.${oIndex}.text`}
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                    <FormControl>
+                      <Input placeholder={`Option ${oIndex + 1}`} {...field} />
+                    </FormControl>
+                    {optionFields.length > 2 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeOption(oIndex)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full mt-1 border-dashed"
+            onClick={() => appendOption({ text: "" })}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Option
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const CreatePoll = () => {
   const navigate = useNavigate();
@@ -48,15 +149,20 @@ const CreatePoll = () => {
     defaultValues: {
       title: "",
       description: "",
-      options: [{ text: "" }, { text: "" }],
+      questions: [
+        {
+          text: "",
+          options: [{ text: "" }, { text: "" }],
+        },
+      ],
       visibility: "public",
       duration: "7",
       anonymous: true,
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    name: "options",
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    name: "questions",
     control: form.control,
   });
 
@@ -90,10 +196,10 @@ const CreatePoll = () => {
         visibility: data.visibility,
         status: "active",
         expiresAt: new Date(Date.now() + parseInt(data.duration) * 24 * 60 * 60 * 1000).toISOString(),
-        options: data.options.map((opt) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          text: opt.text,
-          votes: 0,
+        options: [],
+        questions: data.questions.map((q) => ({
+          text: q.text,
+          options: q.options.map((opt) => ({ text: opt.text })),
         })),
       });
 
@@ -206,53 +312,32 @@ const CreatePoll = () => {
               </CardContent>
             </Card>
 
-            {/* Options Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <List className="h-4 w-4" /> Answer Options
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {fields.map((field, index) => (
-                  <FormField
-                    key={field.id}
-                    control={form.control}
-                    name={`options.${index}.text`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                          <FormControl>
-                            <Input placeholder={`Option ${index + 1}`} {...field} />
-                          </FormControl>
-                          {fields.length > 2 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => remove(index)}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => append({ text: "" })}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add another option
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Questions List */}
+            <div className="space-y-4">
+              {questionFields.map((field, qIndex) => (
+                <QuestionFormCard
+                  key={field.id}
+                  qIndex={qIndex}
+                  removeQuestion={() => removeQuestion(qIndex)}
+                  form={form}
+                  canDelete={questionFields.length > 1}
+                />
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 border-dashed border-2 hover:border-primary/50"
+                onClick={() =>
+                  appendQuestion({
+                    text: "",
+                    options: [{ text: "" }, { text: "" }],
+                  })
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Another Question
+              </Button>
+            </div>
 
             {/* Settings */}
             <Card>

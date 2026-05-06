@@ -16,7 +16,7 @@ const VotePoll = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [alreadyVoted, setAlreadyVoted] = useState(false);
 
   const { data: poll, isLoading: pollLoading } = usePoll(id || "");
@@ -33,18 +33,31 @@ const VotePoll = () => {
     }
   }, [id, user, poll, navigate]);
 
+  const questions = poll?.questions && poll.questions.length > 0
+    ? poll.questions
+    : poll
+      ? [
+          {
+            id: "default",
+            text: "Cast Your Vote",
+            options: poll.options,
+          },
+        ]
+      : [];
+
   const handleVoteSubmission = async () => {
-    if (!id || !selectedOption || !user || !poll) return;
+    if (!id || !user || !poll) return;
 
     try {
-      const questionId = poll.questions?.[0]?.id;
-      if (!questionId) throw new Error("Question not found.");
+      const answersArray = Object.entries(answers).map(([questionId, optionId]) => {
+        // If it's a virtual question, use the real first question id if available
+        const realQuestionId = questionId === "default" ? (poll.questions?.[0]?.id || "default") : questionId;
+        return { questionId: realQuestionId, optionId };
+      });
 
       await voteMutation.mutateAsync({
         pollId: id,
-        answers: [
-          { questionId, optionId: selectedOption }
-        ]
+        answers: answersArray,
       });
 
       toast.success("Your vote has been counted!");
@@ -85,6 +98,8 @@ const VotePoll = () => {
     );
   }
 
+  const allAnswered = Object.keys(answers).length === questions.length;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar variant="app" />
@@ -100,33 +115,50 @@ const VotePoll = () => {
             </h1>
             <p className="mt-2 text-muted-foreground">{poll.description}</p>
 
-            <div className="mt-8 space-y-3 text-left">
-              {poll.options.map((opt) => (
-                <button
-                  key={opt.id}
-                  disabled={voteMutation.isPending}
-                  onClick={() => setSelectedOption(opt.id)}
-                  className={`flex w-full items-center justify-between rounded-lg border-2 p-4 transition-all ${selectedOption === opt.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/30"
-                    } ${voteMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-5 w-5 rounded-full border-2 ${selectedOption === opt.id ? "border-primary bg-primary" : "border-muted-foreground/40"
-                      } flex items-center justify-center`}>
-                      {selectedOption === opt.id && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
-                    </div>
-                    <span className="font-semibold text-foreground">{opt.text}</span>
+            <div className="mt-8 space-y-8 text-left">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {questions.map((q: any, qIdx: number) => (
+                <div key={q.id} className="space-y-4 border-b border-border/50 pb-6 last:border-0 last:pb-0">
+                  {questions.length > 1 && (
+                    <h3 className="text-lg font-bold text-primary">
+                      Question #{qIdx + 1}: {q.text}
+                    </h3>
+                  )}
+                  <div className="space-y-3">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {(q.options || []).map((opt: any) => {
+                      const isSelected = answers[q.id] === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          disabled={voteMutation.isPending}
+                          onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.id }))}
+                          className={`flex w-full items-center justify-between rounded-lg border-2 p-4 transition-all ${isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/30"
+                            } ${voteMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`h-5 w-5 rounded-full border-2 ${isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                              } flex items-center justify-center`}>
+                              {isSelected && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                            </div>
+                            <span className="font-semibold text-foreground">{opt.text}</span>
+                          </div>
+                          <CheckCircle className={`h-5 w-5 ${isSelected ? "text-primary" : "text-transparent"}`} />
+                        </button>
+                      );
+                    })}
                   </div>
-                  <CheckCircle className={`h-5 w-5 ${selectedOption === opt.id ? "text-primary" : "text-transparent"}`} />
-                </button>
+                </div>
               ))}
             </div>
 
             <Button
               className="mt-8 w-full"
               size="lg"
-              disabled={!selectedOption || voteMutation.isPending}
+              disabled={!allAnswered || voteMutation.isPending}
               onClick={handleVoteSubmission}
             >
               {voteMutation.isPending ? (

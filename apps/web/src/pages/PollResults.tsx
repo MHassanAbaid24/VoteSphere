@@ -91,35 +91,64 @@ const PollResults = () => {
             <h1 className="text-2xl font-bold text-foreground md:text-3xl">{poll.title}</h1>
             <p className="mt-2 text-muted-foreground">{poll.description}</p>
 
-            <div className="mt-10 space-y-8">
-              {poll.options.map((opt) => {
-                // Dynamic Calculation
-                const percentage = poll.totalVotes > 0
-                  ? Math.round((opt.votes / poll.totalVotes) * 100)
-                  : 0;
+            <div className="mt-10 space-y-10">
+              {(() => {
+                const questions = poll.questions && poll.questions.length > 0
+                  ? poll.questions
+                  : [
+                      {
+                        id: "default",
+                        text: "Results",
+                        options: poll.options,
+                      },
+                    ];
 
-                return (
-                  <div key={opt.id} className="relative">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{opt.text}</span>
-                      <div className="text-right">
-                        <span className="text-lg font-bold text-primary">{percentage}%</span>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {opt.votes.toLocaleString()} votes
-                        </p>
+                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                return questions.map((q: any, qIdx: number) => {
+                  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                  const questionTotalVotes = q.options.reduce((sum: number, opt: any) => sum + (opt.votes || 0), 0);
+
+                  return (
+                    <div key={q.id} className="space-y-4 border-b border-border/50 pb-8 last:border-0 last:pb-0">
+                      {questions.length > 1 && (
+                        <h3 className="text-lg font-bold text-primary">
+                          Question #{qIdx + 1}: {q.text}
+                        </h3>
+                      )}
+                      <div className="space-y-6">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(q.options || []).map((opt: any) => {
+                          const percentage = questionTotalVotes > 0
+                            ? Math.round((opt.votes / questionTotalVotes) * 100)
+                            : 0;
+
+                          return (
+                            <div key={opt.id} className="relative">
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="font-semibold text-foreground">{opt.text}</span>
+                                <div className="text-right">
+                                  <span className="text-lg font-bold text-primary">{percentage}%</span>
+                                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                    {opt.votes.toLocaleString()} votes
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Progress Bar */}
+                              <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
 
             {/* Footer Stats */}
