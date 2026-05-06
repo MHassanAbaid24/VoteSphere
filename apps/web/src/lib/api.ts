@@ -131,5 +131,59 @@ export const api = {
             console.error("Error fetching trending polls:", err);
             return [];
         }
+    },
+
+    // --- Notifications Logic ---
+
+    getNotifications: async (filters?: { page?: number; limit?: number; unreadOnly?: boolean }) => {
+        try {
+            const params = new URLSearchParams();
+            if (filters?.page) params.append('page', String(filters.page));
+            if (filters?.limit) params.append('limit', String(filters.limit));
+            if (filters?.unreadOnly !== undefined) params.append('unreadOnly', String(filters.unreadOnly));
+
+            const res = await apiClient.get(`/v1/notifications?${params.toString()}`);
+            if (res.data?.success) {
+                return {
+                    notifications: res.data.data || [],
+                    pagination: res.data.pagination
+                };
+            }
+            return { notifications: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 0 } };
+        } catch (err) {
+            console.error("Error fetching notifications:", err);
+            return { notifications: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 0 } };
+        }
+    },
+
+    getUnreadNotificationsCount: async (): Promise<number> => {
+        try {
+            const res = await apiClient.get("/v1/notifications/count");
+            if (res.data?.success) {
+                return res.data.data?.count ?? 0;
+            }
+            return 0;
+        } catch (err) {
+            console.error("Error fetching unread count:", err);
+            return 0;
+        }
+    },
+
+    markAllNotificationsAsRead: async (): Promise<void> => {
+        try {
+            await apiClient.patch("/v1/notifications/read-all");
+        } catch (err) {
+            console.error("Error marking all notifications as read:", err);
+            throw err;
+        }
+    },
+
+    markNotificationAsRead: async (id: string): Promise<void> => {
+        try {
+            await apiClient.patch(`/v1/notifications/${id}`);
+        } catch (err) {
+            console.error(`Error marking notification ${id} as read:`, err);
+            throw err;
+        }
     }
 };
