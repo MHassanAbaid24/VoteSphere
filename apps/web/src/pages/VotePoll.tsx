@@ -10,6 +10,9 @@ import { usePoll, useCastVote } from "@/hooks/use-polls";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/httpClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const VotePoll = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +24,36 @@ const VotePoll = () => {
 
   const { data: poll, isLoading: pollLoading } = usePoll(id || "");
   const voteMutation = useCastVote();
+
+  const [hasDemographics, setHasDemographics] = useState<boolean | null>(null);
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [demoAge, setDemoAge] = useState("");
+  const [demoGender, setDemoGender] = useState("");
+  const [demoCountry, setDemoCountry] = useState("");
+  const [savingDemo, setSavingDemo] = useState(false);
+
+  // Fetch demographics on mount to verify completion
+  useEffect(() => {
+    if (user) {
+      apiClient.get("/v1/users/me/demographics")
+        .then((res) => {
+          if (res.data?.success && res.data.data) {
+            const d = res.data.data;
+            if (d.ageRange && d.gender && d.country) {
+              setHasDemographics(true);
+              setDemoAge(d.ageRange);
+              setDemoGender(d.gender);
+              setDemoCountry(d.country);
+            } else {
+              setHasDemographics(false);
+            }
+          } else {
+            setHasDemographics(false);
+          }
+        })
+        .catch(() => setHasDemographics(false));
+    }
+  }, [user]);
 
   // Check if user already voted on mount or if they are the creator
   useEffect(() => {
@@ -45,8 +78,13 @@ const VotePoll = () => {
         ]
       : [];
 
-  const handleVoteSubmission = async () => {
+  const handleVoteSubmission = async (overrideDemographics: boolean = false) => {
     if (!id || !user || !poll) return;
+
+    if (!hasDemographics && !overrideDemographics) {
+      setIsDemoModalOpen(true);
+      return;
+    }
 
     try {
       const answersArray = Object.entries(answers).map(([questionId, optionId]) => {
@@ -64,6 +102,31 @@ const VotePoll = () => {
       navigate(`/poll/${id}/results`);
     } catch (error: unknown) {
       toast.error((error as Error).message || "Failed to cast vote.");
+    }
+  };
+
+  const handleSaveAndVote = async () => {
+    if (!demoAge || !demoGender || !demoCountry) {
+      toast.error("Please fill out all fields to submit your demographics.");
+      return;
+    }
+
+    setSavingDemo(true);
+    try {
+      await apiClient.put("/v1/users/me/demographics", {
+        ageRange: demoAge,
+        gender: demoGender,
+        country: demoCountry,
+      });
+      setHasDemographics(true);
+      setIsDemoModalOpen(false);
+      toast.success("Demographics saved successfully!");
+      // Proceed to cast vote
+      await handleVoteSubmission(true);
+    } catch {
+      toast.error("Failed to save demographics. Please try again.");
+    } finally {
+      setSavingDemo(false);
     }
   };
 
@@ -159,7 +222,7 @@ const VotePoll = () => {
               className="mt-8 w-full"
               size="lg"
               disabled={!allAnswered || voteMutation.isPending}
-              onClick={handleVoteSubmission}
+              onClick={() => handleVoteSubmission(false)}
             >
               {voteMutation.isPending ? (
                 <>
@@ -181,6 +244,80 @@ const VotePoll = () => {
           </CardContent>
         </Card>
       </main>
+
+      <Dialog open={isDemoModalOpen} onOpenChange={setIsDemoModalOpen}>
+        <DialogContent className="sm:max-w-md border-primary/20 bg-background shadow-2xl rounded-2xl">
+          <DialogHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+              <Users className="h-6 w-6 animate-pulse" />
+            </div>
+            <DialogTitle className="text-xl font-extrabold text-foreground">Demographics Required</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
+              VoteSphere calculates dynamic demographic breakdowns for premium creators. Please set up your demographics to proceed with voting.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 text-left">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Age Range</label>
+              <Select value={demoAge} onValueChange={setDemoAge}>
+                <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select age range" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="18-24">18-24 years old</SelectItem>
+                  <SelectItem value="25-34">25-34 years old</SelectItem>
+                  <SelectItem value="35-44">35-44 years old</SelectItem>
+                  <SelectItem value="45-54">45-54 years old</SelectItem>
+                  <SelectItem value="55+">55+ years old</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Gender Identity</label>
+              <Select value={demoGender} onValueChange={setDemoGender}>
+                <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Non-binary">Non-binary</SelectItem>
+                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Location (Country)</label>
+              <Select value={demoCountry} onValueChange={setDemoCountry}>
+                <SelectTrigger className="w-full h-10"><SelectValue placeholder="Select country" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="Germany">Germany</SelectItem>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="France">France</SelectItem>
+                  <SelectItem value="Spain">Spain</SelectItem>
+                  <SelectItem value="Canada">Canada</SelectItem>
+                  <SelectItem value="Australia">Australia</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button
+            className="w-full h-11 text-sm font-bold mt-2"
+            disabled={savingDemo || !demoAge || !demoGender || !demoCountry}
+            onClick={handleSaveAndVote}
+          >
+            {savingDemo ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              </>
+            ) : (
+              "Save & Cast Vote"
+            )}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
