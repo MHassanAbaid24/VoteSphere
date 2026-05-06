@@ -1,19 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Calendar, Share2, ArrowLeft, Loader2, Info } from "lucide-react";
+import { Users, Calendar, Share2, ArrowLeft, Loader2, Info, Sparkles, AlertCircle, BarChart3 } from "lucide-react";
 import { usePoll } from "@/hooks/use-polls";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/lib/httpClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [demographics, setDemographics] = useState<any>(null);
+  const [loadingDemographics, setLoadingDemographics] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
+
+  useEffect(() => {
+    if (id && user?.isPremium) {
+      setLoadingDemographics(true);
+      apiClient.get(`/v1/analytics/polls/${id}/demographics`)
+        .then((res) => {
+          if (res.data?.success) {
+            setDemographics(res.data.data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingDemographics(false));
+    }
+  }, [id, user]);
+
+  const handleJoinWaitlist = async () => {
+    setSubmittingWaitlist(true);
+    try {
+      // Simulate waitlist subscription API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Successfully joined the premium analytics waitlist!");
+      setWaitlistOpen(false);
+    } catch {
+      toast.error("Failed to join waitlist. Please try again.");
+    } finally {
+      setSubmittingWaitlist(false);
+    }
+  };
 
   // Use refetchInterval: 3000 to simulate live updates every 3 seconds
   const { data: poll, isLoading, isRefetching } = usePoll(id || "");
@@ -170,6 +213,171 @@ const PollResults = () => {
                 </Badge>
               </div>
             </div>
+
+            {/* Pro Demographics Analytics Section */}
+            <div className="mt-8 border-t border-border pt-6 text-left">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" /> Pro Demographics Analytics
+                </h3>
+                {!user?.isPremium && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 gap-1 font-semibold">
+                    <Sparkles className="h-3.5 w-3.5" /> PRO
+                  </Badge>
+                )}
+              </div>
+
+              {user?.isPremium ? (
+                loadingDemographics ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading demographic breakdown...
+                  </div>
+                ) : demographics?.insufficientData ? (
+                  <Card className="border-warning/20 bg-warning/5">
+                    <CardContent className="p-4 flex gap-3 text-sm text-warning/80">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-warning" />
+                      <div>
+                        <p className="font-bold">Privacy Threshold Locked</p>
+                        <p className="text-xs mt-1 leading-relaxed">
+                          To protect voter privacy, demographic breakdowns are locked until at least **5 unique voters** participate in this poll.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : demographics ? (
+                  <div className="grid gap-6 sm:grid-cols-3 bg-muted/20 rounded-xl p-5 border border-border/50">
+                    {/* Age Range */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Age Groups</h4>
+                      <div className="space-y-2">
+                        {demographics.ageRange?.length > 0 ? (
+                          demographics.ageRange.map((g: any) => (
+                            <div key={g.name} className="space-y-1">
+                              <div className="flex justify-between text-[11px] font-semibold text-foreground">
+                                <span>{g.name}</span>
+                                <span>{g.percentage}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{ width: `${g.percentage}%` }} />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">No age data available.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Gender */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gender</h4>
+                      <div className="space-y-2">
+                        {demographics.gender?.length > 0 ? (
+                          demographics.gender.map((g: any) => (
+                            <div key={g.name} className="space-y-1">
+                              <div className="flex justify-between text-[11px] font-semibold text-foreground">
+                                <span>{g.name}</span>
+                                <span>{g.percentage}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{ width: `${g.percentage}%` }} />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">No gender data available.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Country */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Locations</h4>
+                      <div className="space-y-2">
+                        {demographics.country?.length > 0 ? (
+                          demographics.country.map((g: any) => (
+                            <div key={g.name} className="space-y-1">
+                              <div className="flex justify-between text-[11px] font-semibold text-foreground">
+                                <span>{g.name}</span>
+                                <span>{g.percentage}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{ width: `${g.percentage}%` }} />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">No location data available.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-sm text-muted-foreground">
+                    Failed to fetch demographic metrics.
+                  </div>
+                )
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border border-border/50 shadow-sm p-6 bg-card">
+                  {/* Blurred mock graphic */}
+                  <div className="grid gap-6 sm:grid-cols-3 filter blur-sm opacity-30 select-none">
+                    <div className="space-y-2">
+                      <div className="h-4 w-20 bg-muted rounded" />
+                      <div className="h-3 w-full bg-muted rounded" /><div className="h-3 w-4/5 bg-muted rounded" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-20 bg-muted rounded" />
+                      <div className="h-3 w-full bg-muted rounded" /><div className="h-3 w-4/5 bg-muted rounded" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-20 bg-muted rounded" />
+                      <div className="h-3 w-full bg-muted rounded" /><div className="h-3 w-4/5 bg-muted rounded" />
+                    </div>
+                  </div>
+
+                  {/* Lock Overlay */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] p-4 text-center">
+                    <Sparkles className="h-8 w-8 text-primary animate-pulse mb-2" />
+                    <h4 className="text-sm font-bold text-foreground">Unlock Voter Demographics</h4>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
+                      Analyze voter age, gender, and geographical distributions to target and interpret results with precision.
+                    </p>
+                    <Button size="sm" className="mt-4 font-bold text-xs" onClick={() => setWaitlistOpen(true)}>
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Waitlist Subscription Dialog */}
+            <Dialog open={waitlistOpen} onOpenChange={setWaitlistOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader className="text-center sm:text-left">
+                  <DialogTitle className="flex items-center gap-2 text-primary font-extrabold text-xl">
+                    <Sparkles className="h-5 w-5 text-primary shrink-0" /> Upgrade to VoteSphere Pro
+                  </DialogTitle>
+                  <DialogDescription className="pt-2 leading-relaxed text-sm">
+                    Thank you for your interest in Pro Analytics! Real-time premium demographics, advanced reports, and cohort tracking are launching soon.
+                    Join the waitlist today to get exclusive early access and a 50% discount on launch!
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                  <Button variant="outline" onClick={() => setWaitlistOpen(false)} disabled={submittingWaitlist}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleJoinWaitlist} disabled={submittingWaitlist}>
+                    {submittingWaitlist ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                      </>
+                    ) : (
+                      "Join waitlist"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <div className="mt-8 flex gap-3">
               <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">
