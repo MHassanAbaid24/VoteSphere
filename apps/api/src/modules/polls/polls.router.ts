@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { verify } from 'hono/jwt';
+import { env } from '../../config/env';
 import { streamSSE } from 'hono/streaming';
 import { prisma } from '../../config/database';
 import { authMiddleware } from '../../middleware/auth.middleware';
@@ -89,14 +91,28 @@ pollsRouter.get('/me', authMiddleware, async (c) => {
 pollsRouter.get('/:id', async (c) => {
   try {
     const pollId = c.req.param('id');
-
-    // Increment views counter atomically on fetch
-    await prisma.poll.update({
-      where: { id: pollId },
-      data: { views: { increment: 1 } },
-    }).catch(() => {});
-
     const poll = await pollsService.getPollById(pollId as string);
+
+    // Extract potential logged-in user to check ownership
+    const authHeader = c.req.header('Authorization');
+    let userId: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const payload = (await verify(token, env.JWT_SECRET, 'HS256')) as any;
+        userId = payload.sub;
+      } catch (err) {}
+    }
+
+    // Only increment views if visitor is NOT the creator/owner of the poll
+    if (!userId || userId !== poll.creatorId) {
+      await prisma.poll.update({
+        where: { id: pollId },
+        data: { views: { increment: 1 } },
+      }).catch(() => {});
+    }
+
     return c.json({
       success: true,
       data: poll,
