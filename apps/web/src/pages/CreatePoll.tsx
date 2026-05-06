@@ -188,7 +188,7 @@ const CreatePoll = () => {
   };
 
   const onSubmit = async (data: PollFormValues) => {
-    if (!user) return;
+    if (!user || createMutation.isPending) return;
 
     try {
       const newPoll = await createMutation.mutateAsync({
