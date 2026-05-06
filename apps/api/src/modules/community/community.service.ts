@@ -2,7 +2,7 @@ import { prisma } from '../../config/database';
 import { withCache } from '../../lib/cache';
 
 export const getCategories = () => {
-  return ['Technology', 'Sports', 'Politics', 'Entertainment', 'Science', 'Business', 'Other'];
+  return ['Technology', 'Sports', 'Politics', 'Entertainment', 'Science', 'Business', 'Health', 'Education', 'Other'];
 };
 
 export const getFeed = async (filters: { page?: number; limit?: number; userId?: string }) => {

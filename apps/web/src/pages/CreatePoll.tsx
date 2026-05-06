@@ -333,6 +333,7 @@ const CreatePoll = () => {
                           <SelectItem value="Business">Business</SelectItem>
                           <SelectItem value="Health">Health</SelectItem>
                           <SelectItem value="Education">Education</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
