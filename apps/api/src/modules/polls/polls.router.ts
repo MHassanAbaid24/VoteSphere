@@ -6,6 +6,7 @@ import { CreatePollSchema, UpdatePollSchema } from './polls.schema';
 import * as pollsService from './polls.service';
 import { ZodIssue } from 'zod';
 import { uploadToS3 } from '../../lib/s3';
+import { getRedisSubClient, isRedisHealthy } from '../../lib/cache';
 
 export const pollsRouter = new Hono();
 
@@ -290,19 +291,19 @@ pollsRouter.post('/:id/cover', authMiddleware, async (c) => {
   }
 });
 
-// Real-Time Results Stream (Server-Sent Events)
+// Real-Time Results Stream (Server-Sent Events with Pub/Sub & Polling Hybrid)
 pollsRouter.get('/:id/stream', async (c) => {
   const id = c.req.param('id');
+  const channel = `poll:${id}`;
+
   return streamSSE(c, async (stream) => {
     let active = true;
-    stream.onAbort(() => {
-      active = false;
-    });
+    let usePolling = true;
 
-    while (active) {
+    // Helper to send latest data to the stream
+    const sendLatestData = async () => {
       try {
         const poll = await pollsService.getPollById(id);
-
         await stream.writeSSE({
           data: JSON.stringify(poll),
           event: 'message',
@@ -313,10 +314,61 @@ pollsRouter.get('/:id/stream', async (c) => {
           data: JSON.stringify({ error: err.message || 'Poll not found' }),
           event: 'error',
         });
-        break;
+        active = false;
       }
+    };
 
-      await stream.sleep(3000);
+    // Immediately push initial data to client
+    await sendLatestData();
+
+    // Setup cleanup logic on abort
+    stream.onAbort(() => {
+      active = false;
+    });
+
+    const redisSub = getRedisSubClient();
+
+    if (redisSub && isRedisHealthy()) {
+      usePolling = false;
+
+      const onMessage = async (chan: string, message: string) => {
+        if (!active) return;
+        if (chan === channel && message === 'updated') {
+          await sendLatestData();
+        }
+      };
+
+      try {
+        await redisSub.subscribe(channel);
+        redisSub.on('message', onMessage);
+
+        // Keep SSE connection alive via 15-second heartbeats
+        while (active) {
+          await stream.sleep(15000);
+          if (active) {
+            await stream.writeSSE({
+              data: '',
+              event: 'ping',
+            });
+          }
+        }
+
+        // Cleanup listener and unsubscribe
+        redisSub.off('message', onMessage);
+        await redisSub.unsubscribe(channel).catch(() => {});
+      } catch (err: any) {
+        console.warn(`⚠️ SSE PubSub subscription failed for poll ${id}, falling back to polling:`, err.message);
+        usePolling = true;
+      }
+    }
+
+    // Polling fallback loop (if Redis is unconfigured or offline)
+    if (usePolling) {
+      while (active) {
+        await stream.sleep(3000);
+        if (!active) break;
+        await sendLatestData();
+      }
     }
   });
 });
