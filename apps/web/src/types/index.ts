@@ -4,6 +4,8 @@ export type User = {
     email: string;
     avatarUrl?: string;
     emailVerified?: boolean;
+    isPremium?: boolean;
+    role?: 'USER' | 'PREMIUM' | 'ADMIN';
 };
 
 export type PollOption = {

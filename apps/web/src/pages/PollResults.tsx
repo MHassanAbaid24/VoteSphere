@@ -23,12 +23,12 @@ import {
 
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [demographics, setDemographics] = useState<any>(null);
   const [loadingDemographics, setLoadingDemographics] = useState(false);
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     if (id && user?.isPremium) {
@@ -44,17 +44,21 @@ const PollResults = () => {
     }
   }, [id, user]);
 
-  const handleJoinWaitlist = async () => {
-    setSubmittingWaitlist(true);
+  const handleUpgradeToPremium = async () => {
+    setUpgrading(true);
     try {
-      // Simulate waitlist subscription API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success("Successfully joined the premium analytics waitlist!");
-      setWaitlistOpen(false);
+      const res = await apiClient.patch("/v1/users/me", { isPremium: true });
+      if (res.data?.success) {
+        toast.success("Welcome to VoteSphere Pro!");
+        await refreshUser();
+        setUpgradeOpen(false);
+      } else {
+        throw new Error();
+      }
     } catch {
-      toast.error("Failed to join waitlist. Please try again.");
+      toast.error("Upgrade failed. Please try again later.");
     } finally {
-      setSubmittingWaitlist(false);
+      setUpgrading(false);
     }
   };
 
@@ -342,7 +346,7 @@ const PollResults = () => {
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
                       Analyze voter age, gender, and geographical distributions to target and interpret results with precision.
                     </p>
-                    <Button size="sm" className="mt-4 font-bold text-xs" onClick={() => setWaitlistOpen(true)}>
+                    <Button size="sm" className="mt-4 font-bold text-xs" onClick={() => setUpgradeOpen(true)}>
                       Upgrade to Pro
                     </Button>
                   </div>
@@ -350,29 +354,43 @@ const PollResults = () => {
               )}
             </div>
 
-            {/* Waitlist Subscription Dialog */}
-            <Dialog open={waitlistOpen} onOpenChange={setWaitlistOpen}>
+            {/* Premium Upgrade Confirmation Dialog */}
+            <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader className="text-center sm:text-left">
                   <DialogTitle className="flex items-center gap-2 text-primary font-extrabold text-xl">
-                    <Sparkles className="h-5 w-5 text-primary shrink-0" /> Upgrade to VoteSphere Pro
+                    <Sparkles className="h-5 w-5 text-primary shrink-0 animate-pulse" /> Upgrade to VoteSphere Pro
                   </DialogTitle>
                   <DialogDescription className="pt-2 leading-relaxed text-sm">
-                    Thank you for your interest in Pro Analytics! Real-time premium demographics, advanced reports, and cohort tracking are launching soon.
-                    Join the waitlist today to get exclusive early access and a 50% discount on launch!
+                    Are you sure you want to become a **Premium Member**? 
+                    Upgrading to VoteSphere Pro instantly unlocks:
                   </DialogDescription>
+                  <div className="mt-4 space-y-2.5 text-xs text-foreground bg-muted/30 p-3.5 rounded-lg border border-border/40">
+                    <div className="flex items-start gap-2">
+                      <span className="text-primary font-bold">✨</span>
+                      <span>Real-time detailed demographic breakdowns.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-primary font-bold">📊</span>
+                      <span>Advanced user age, gender, and location analysis.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-primary font-bold">📈</span>
+                      <span>Premium poll filters and participant insights.</span>
+                    </div>
+                  </div>
                 </DialogHeader>
-                <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                  <Button variant="outline" onClick={() => setWaitlistOpen(false)} disabled={submittingWaitlist}>
+                <DialogFooter className="gap-2 sm:gap-0 mt-6">
+                  <Button variant="outline" onClick={() => setUpgradeOpen(false)} disabled={upgrading}>
                     Cancel
                   </Button>
-                  <Button onClick={handleJoinWaitlist} disabled={submittingWaitlist}>
-                    {submittingWaitlist ? (
+                  <Button onClick={handleUpgradeToPremium} disabled={upgrading} className="font-bold">
+                    {upgrading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Upgrading...
                       </>
                     ) : (
-                      "Join waitlist"
+                      "Yes, Upgrade"
                     )}
                   </Button>
                 </DialogFooter>

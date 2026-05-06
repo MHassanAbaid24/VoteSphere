@@ -6,7 +6,41 @@ export const usersRouter = new Hono();
 
 usersRouter.get('/:id', (c) => c.json({ success: true, data: null }));
 
-usersRouter.patch('/me', (c) => c.json({ success: true, data: null }));
+usersRouter.patch('/me', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as any);
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    const body = await c.req.json();
+    const updatedData: any = {};
+
+    if (typeof body.isPremium === 'boolean') {
+      updatedData.isPremium = body.isPremium;
+      updatedData.role = body.isPremium ? 'PREMIUM' : 'USER';
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: updatedData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        emailVerified: true,
+        role: true,
+        isPremium: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    });
+
+    return c.json({ success: true, data: { user: updatedUser } });
+  } catch (err: any) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: err.message } }, 400);
+  }
+});
 
 /**
  * DELETE /v1/users/me
