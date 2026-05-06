@@ -107,7 +107,11 @@ const Profile = () => {
 
   // 2. Derive Profile Stats
   const totalVotesOnMyPolls = myPolls.reduce((sum, p) => sum + p.totalVotes, 0);
+  const totalViewsOnMyPolls = myPolls.reduce((sum, p) => sum + (p.views || 0), 0);
   const activePollsCount = myPolls.filter(p => p.status === "active").length;
+  const averageResponseRate = totalViewsOnMyPolls > 0
+    ? Math.min(Math.round((totalVotesOnMyPolls / totalViewsOnMyPolls) * 100), 100)
+    : 0;
 
   const handleLogout = () => {
     logout();
@@ -461,7 +465,7 @@ const Profile = () => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium uppercase">Response Rate</p>
-                    <p className="text-xl font-bold">94%</p>
+                    <p className="text-xl font-bold">{averageResponseRate}%</p>
                   </div>
                 </CardContent>
               </Card>

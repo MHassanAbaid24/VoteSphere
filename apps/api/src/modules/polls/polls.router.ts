@@ -89,6 +89,13 @@ pollsRouter.get('/me', authMiddleware, async (c) => {
 pollsRouter.get('/:id', async (c) => {
   try {
     const pollId = c.req.param('id');
+
+    // Increment views counter atomically on fetch
+    await prisma.poll.update({
+      where: { id: pollId },
+      data: { views: { increment: 1 } },
+    }).catch(() => {});
+
     const poll = await pollsService.getPollById(pollId as string);
     return c.json({
       success: true,

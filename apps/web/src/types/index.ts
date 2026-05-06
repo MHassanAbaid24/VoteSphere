@@ -28,6 +28,7 @@ export type Poll = {
     category?: string;
     questions?: any[];
     coverImage?: string | null;
+    views?: number;
 };
 
 export type Vote = {

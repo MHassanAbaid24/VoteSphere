@@ -147,6 +147,7 @@ model Poll {
   category    String?
   tags        String[]
   totalVotes  Int         @default(0) // denormalized counter
+  views       Int         @default(0) // tracks total views/impressions
   expiresAt   DateTime?
   publishedAt DateTime?
   createdAt   DateTime    @default(now())
