@@ -18,10 +18,11 @@ import {
   Clock,
   Inbox,
   Sparkles,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePolls } from "@/hooks/use-polls";
+import { usePolls, useMyPolls } from "@/hooks/use-polls";
 import { formatDistanceToNow } from "date-fns";
 import { apiClient } from "@/lib/httpClient";
 import { toast } from "sonner";
@@ -57,10 +58,11 @@ const Dashboard = () => {
     }
   };
 
-  const { data: polls, isLoading } = usePolls();
+  const { data: polls, isLoading } = useMyPolls(true);
 
-  // 1. Filter polls for the current user
-  const userPolls = polls?.filter(p => p.creatorId === user?.id) || [];
+  // 1. All user owned polls (already filtered by creatorId on the server!)
+  const allUserPollsIncludingDeleted = polls || [];
+  const userPolls = allUserPollsIncludingDeleted.filter(p => !p.deletedAt);
   const activePolls = userPolls.filter(p => p.status === "active");
 
   // 2. Calculate Analytics
@@ -72,7 +74,7 @@ const Dashboard = () => {
   const recentActivity = (() => {
     const activities: { icon: any; text: string; date: Date }[] = [];
 
-    userPolls.forEach(p => {
+    allUserPollsIncludingDeleted.forEach(p => {
       const createdDate = new Date(p.createdAt);
       const updatedDate = p.updatedAt ? new Date(p.updatedAt) : createdDate;
       const expiresDate = p.expiresAt ? new Date(p.expiresAt) : null;
@@ -100,6 +102,15 @@ const Dashboard = () => {
           icon: CheckCircle,
           text: `Poll "${p.title}" has closed`,
           date: expiresDate || updatedDate
+        });
+      }
+
+      // 4. Deletion Activity
+      if (p.deletedAt) {
+        activities.push({
+          icon: Trash2,
+          text: `Poll "${p.title}" was deleted`,
+          date: new Date(p.deletedAt)
         });
       }
     });

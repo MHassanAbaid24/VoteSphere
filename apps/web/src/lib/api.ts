@@ -14,6 +14,8 @@ const mapPoll = (p: any): Poll => ({
   status: p.status?.toLowerCase() === 'active' ? 'active' : 'closed',
   visibility: p.visibility?.toLowerCase() === 'public' ? 'public' : 'private',
   createdAt: p.createdAt,
+  updatedAt: p.updatedAt,
+  deletedAt: p.deletedAt,
   expiresAt: p.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   totalVotes: p.totalVotes || 0,
   category: p.category,
@@ -24,15 +26,30 @@ const mapPoll = (p: any): Poll => ({
 export const api = {
     // --- Poll Management ---
 
-    getPolls: async (): Promise<Poll[]> => {
+    getPolls: async (showDeleted?: boolean): Promise<Poll[]> => {
         try {
-            const res = await apiClient.get("/v1/polls");
+            const url = showDeleted ? "/v1/polls?showDeleted=true" : "/v1/polls";
+            const res = await apiClient.get(url);
             if (res.data?.success && Array.isArray(res.data.data)) {
                 return res.data.data.map(mapPoll);
             }
             return [];
         } catch (err) {
             console.error("Error fetching polls:", err);
+            return [];
+        }
+    },
+
+    getMyPolls: async (showDeleted?: boolean): Promise<Poll[]> => {
+        try {
+            const url = showDeleted ? "/v1/polls/me?showDeleted=true" : "/v1/polls/me";
+            const res = await apiClient.get(url);
+            if (res.data?.success && Array.isArray(res.data.data)) {
+                return res.data.data.map(mapPoll);
+            }
+            return [];
+        } catch (err) {
+            console.error("Error fetching my polls:", err);
             return [];
         }
     },

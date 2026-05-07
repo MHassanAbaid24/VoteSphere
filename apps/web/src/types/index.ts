@@ -24,6 +24,7 @@ export type Poll = {
     visibility: 'public' | 'private';
     createdAt: string;
     updatedAt?: string;
+    deletedAt?: string;
     expiresAt: string;
     totalVotes: number;
     category?: string;

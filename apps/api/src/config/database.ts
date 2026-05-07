@@ -10,7 +10,14 @@ prisma.$use(async (params, next) => {
     if (params.action === 'findMany' || params.action === 'findFirst') {
       // Automatically filter out soft-deleted records
       params.args = params.args || {};
-      params.args.where = { ...params.args.where, deletedAt: null };
+      params.args.where = params.args.where || {};
+      
+      // Check for the bypass flag inside the where object
+      if (params.args.where.deletedAt_bypass === true) {
+        delete params.args.where.deletedAt_bypass;
+      } else if (params.args.where.deletedAt === undefined) {
+        params.args.where.deletedAt = null;
+      }
     }
   }
   

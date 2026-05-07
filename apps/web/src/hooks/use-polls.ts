@@ -2,10 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Poll } from "@/types";
 
-export const usePolls = () => {
+export const usePolls = (showDeleted?: boolean) => {
     return useQuery({
-        queryKey: ["polls"],
-        queryFn: api.getPolls,
+        queryKey: ["polls", showDeleted],
+        queryFn: () => api.getPolls(showDeleted),
+    });
+};
+
+export const useMyPolls = (showDeleted?: boolean) => {
+    return useQuery({
+        queryKey: ["myPolls", showDeleted],
+        queryFn: () => api.getMyPolls(showDeleted),
     });
 };
 

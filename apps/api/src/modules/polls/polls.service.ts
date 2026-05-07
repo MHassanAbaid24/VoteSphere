@@ -61,14 +61,19 @@ export const getPolls = async (filters: {
   status?: any;
   category?: string;
   visibility?: any;
+  showDeleted?: boolean;
 }) => {
   const page = Number(filters.page) || 1;
   const limit = Number(filters.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const where: any = {
-    deletedAt: null,
-  };
+  const where: any = {};
+
+  if (!filters.showDeleted) {
+    where.deletedAt = null;
+  } else {
+    where.deletedAt_bypass = true;
+  }
 
   if (filters.status) where.status = filters.status;
   if (filters.category) where.category = filters.category;
@@ -216,6 +221,7 @@ export const getMyPolls = async (creatorId: string, filters: {
   page?: number;
   limit?: number;
   status?: any;
+  showDeleted?: boolean;
 }) => {
   const page = Number(filters.page) || 1;
   const limit = Number(filters.limit) || 20;
@@ -223,8 +229,13 @@ export const getMyPolls = async (creatorId: string, filters: {
 
   const where: any = {
     creatorId,
-    deletedAt: null,
   };
+
+  if (!filters.showDeleted) {
+    where.deletedAt = null;
+  } else {
+    where.deletedAt_bypass = true;
+  }
 
   if (filters.status) where.status = filters.status;
 

@@ -36,6 +36,7 @@ pollsRouter.get('/', async (c) => {
     const category = c.req.query('category');
     const status = c.req.query('status')?.toUpperCase();
     const visibility = c.req.query('visibility')?.toUpperCase();
+    const showDeleted = c.req.query('showDeleted') === 'true';
 
     const result = await pollsService.getPolls({
       page: page ? parseInt(page) : undefined,
@@ -43,6 +44,7 @@ pollsRouter.get('/', async (c) => {
       category,
       status,
       visibility,
+      showDeleted,
     });
 
     return c.json({
@@ -67,11 +69,13 @@ pollsRouter.get('/me', authMiddleware, async (c) => {
     const page = c.req.query('page');
     const limit = c.req.query('limit');
     const status = c.req.query('status')?.toUpperCase();
+    const showDeleted = c.req.query('showDeleted') === 'true';
 
     const result = await pollsService.getMyPolls(userPayload.id, {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
       status: status || undefined,
+      showDeleted,
     });
 
     return c.json({
