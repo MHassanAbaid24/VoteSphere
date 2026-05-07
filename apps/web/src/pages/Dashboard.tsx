@@ -98,10 +98,20 @@ const Dashboard = () => {
 
       // 3. Closing Activity (If status is closed or expiration date has passed)
       if (p.status === "closed" || (expiresDate && expiresDate < now)) {
+        // If manually closed, use the time it was updated. Otherwise, use the expiration time.
+        let closedDate = p.status === "closed" ? updatedDate : (expiresDate || updatedDate);
+        
+        // If the poll was later deleted, its `updatedAt` database timestamp was overwritten 
+        // by the deletion action. We shift the closure date slightly backward to ensure 
+        // it sorts chronologically *before* the deletion event.
+        if (p.deletedAt && closedDate.getTime() === updatedDate.getTime()) {
+          closedDate = new Date(closedDate.getTime() - 1000);
+        }
+
         activities.push({
           icon: CheckCircle,
           text: `Poll "${p.title}" has closed`,
-          date: expiresDate || updatedDate
+          date: closedDate
         });
       }
 
