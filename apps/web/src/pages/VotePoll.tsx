@@ -70,12 +70,12 @@ const VotePoll = () => {
     ? poll.questions
     : poll
       ? [
-          {
-            id: "default",
-            text: "Cast Your Vote",
-            options: poll.options,
-          },
-        ]
+        {
+          id: "default",
+          text: "Cast Your Vote",
+          options: poll.options,
+        },
+      ]
       : [];
 
   const handleVoteSubmission = async (overrideDemographics: boolean = false) => {
@@ -198,8 +198,8 @@ const VotePoll = () => {
                           disabled={voteMutation.isPending}
                           onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.id }))}
                           className={`flex w-full items-center justify-between rounded-lg border-2 p-4 transition-all ${isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/30"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/30"
                             } ${voteMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <div className="flex items-center gap-3">

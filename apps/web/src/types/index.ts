@@ -23,6 +23,7 @@ export type Poll = {
     status: 'active' | 'closed';
     visibility: 'public' | 'private';
     createdAt: string;
+    updatedAt?: string;
     expiresAt: string;
     totalVotes: number;
     category?: string;

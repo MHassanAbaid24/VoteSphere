@@ -68,14 +68,52 @@ const Dashboard = () => {
   const pollsCreated = userPolls.length;
   const activeCount = activePolls.length;
 
-  // 3. Derived Recent Activity (Mocking activity based on existing user polls)
-  const recentActivity = userPolls
-    .slice(0, 4)
-    .map(p => ({
-      icon: UserPlus,
-      text: `New activity on "${p.title}"`,
-      time: formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })
-    }));
+  // 3. Derived Recent Activity (Generating natural, cumulative activity from user polls)
+  const recentActivity = (() => {
+    const activities: { icon: any; text: string; date: Date }[] = [];
+
+    userPolls.forEach(p => {
+      const createdDate = new Date(p.createdAt);
+      const updatedDate = p.updatedAt ? new Date(p.updatedAt) : createdDate;
+      const expiresDate = p.expiresAt ? new Date(p.expiresAt) : null;
+      const now = new Date();
+
+      // 1. Creation Activity
+      activities.push({
+        icon: Plus,
+        text: `Poll "${p.title}" was created`,
+        date: createdDate
+      });
+
+      // 2. Cumulative Voting Activity
+      if (p.totalVotes > 0) {
+        activities.push({
+          icon: Users,
+          text: `${p.totalVotes.toLocaleString()} ${p.totalVotes === 1 ? "person has" : "people have"} voted on poll "${p.title}"`,
+          date: updatedDate > createdDate ? updatedDate : new Date(createdDate.getTime() + 1000)
+        });
+      }
+
+      // 3. Closing Activity (If status is closed or expiration date has passed)
+      if (p.status === "closed" || (expiresDate && expiresDate < now)) {
+        activities.push({
+          icon: CheckCircle,
+          text: `Poll "${p.title}" has closed`,
+          date: expiresDate || updatedDate
+        });
+      }
+    });
+
+    // Sort chronologically (newest first) and take the top 4 activities
+    return activities
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 4)
+      .map(act => ({
+        icon: act.icon,
+        text: act.text,
+        time: formatDistanceToNow(act.date, { addSuffix: true })
+      }));
+  })();
 
   if (isLoading) {
     return (
