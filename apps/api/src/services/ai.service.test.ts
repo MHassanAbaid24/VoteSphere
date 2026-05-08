@@ -19,3 +19,31 @@ describe('AI Service - Tavily Search', () => {
     expect(mockSource.url).toBe('https://example.com');
   });
 });
+
+describe('AI Service - Gemini Personas', () => {
+  it('should return empty array when Gemini API key is not configured', async () => {
+    // When GEMINI_API_KEY is not set, should gracefully return empty array
+    const results = await aiService.generateGeminiPersonas('AI trends', []);
+    expect(Array.isArray(results)).toBe(true);
+    expect(results.length).toBe(0);
+  });
+
+  it('should export PersonaFeedback interface with required fields', () => {
+    // Verify the interface is properly exported
+    const mockPersona: aiService.PersonaFeedback = {
+      name: 'Alex',
+      role: 'Product Manager',
+      quote: 'This is a great idea',
+      avatar: 'https://example.com/avatar.png',
+    };
+    expect(mockPersona.name).toBe('Alex');
+    expect(mockPersona.role).toBe('Product Manager');
+    expect(mockPersona.quote).toBe('This is a great idea');
+    expect(mockPersona.avatar).toBeDefined();
+  });
+
+  it('should handle empty sources gracefully', async () => {
+    const personas = await aiService.generateGeminiPersonas('test query', []);
+    expect(Array.isArray(personas)).toBe(true);
+  });
+});
