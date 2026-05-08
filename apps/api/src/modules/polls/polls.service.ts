@@ -412,8 +412,49 @@ export const startAiValidation = async (pollId: string, userId: string) => {
     },
   });
 
+  // Fire off background worker asynchronously (non-blocking)
+  // This will transition the status without blocking the response
+  simulateAiValidationBackground(pollId);
+
   return aiInsight;
 };
+
+/**
+ * Background worker that simulates AI validation progress
+ * Transitions status: PENDING -> PROCESSING -> COMPLETED
+ */
+const simulateAiValidationBackground = async (pollId: string) => {
+  try {
+    // Wait 2 seconds, then transition to PROCESSING
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await prisma.aiInsight.update({
+      where: { pollId },
+      data: { status: 'PROCESSING' },
+    });
+
+    // Wait 8 more seconds (10 total), then transition to COMPLETED
+    await new Promise(resolve => setTimeout(resolve, 8000));
+    await prisma.aiInsight.update({
+      where: { pollId },
+      data: { status: 'COMPLETED' },
+    });
+  } catch (error) {
+    console.error(`Error in AI validation background worker for poll ${pollId}:`, error);
+    // Update status to FAILED if something goes wrong
+    try {
+      await prisma.aiInsight.update({
+        where: { pollId },
+        data: {
+          status: 'FAILED',
+          errorMessage: 'Background worker encountered an error',
+        },
+      });
+    } catch (_err) {
+      console.error(`Failed to update AI insight status to FAILED for poll ${pollId}`);
+    }
+  }
+};
+
 
 export const getAiValidationStatus = async (pollId: string, userId: string) => {
   const poll = await prisma.poll.findFirst({

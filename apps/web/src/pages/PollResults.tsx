@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Calendar, Share2, ArrowLeft, Loader2, Info, Sparkles, AlertCircle, BarChart3 } from "lucide-react";
-import { usePoll } from "@/hooks/use-polls";
+import { Users, Calendar, Share2, ArrowLeft, Loader2, Info, Sparkles, AlertCircle, BarChart3, CheckCircle2, Clock } from "lucide-react";
+import { usePoll, useAiValidation } from "@/hooks/use-polls";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,6 @@ const PollResults = () => {
   const [loadingDemographics, setLoadingDemographics] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const [aiStatus, setAiStatus] = useState<AiInsightStatus | null>(null);
   const [aiSubmitting, setAiSubmitting] = useState(false);
 
   useEffect(() => {
@@ -47,12 +46,10 @@ const PollResults = () => {
     }
   }, [id, user]);
 
-  useEffect(() => {
-    if (!id || !user?.isPremium) return;
-    api.getAiValidationStatus(id)
-      .then((data) => setAiStatus(data?.status ?? null))
-      .catch(() => { });
-  }, [id, user?.isPremium]);
+  // Use the useAiValidation hook to automatically poll status
+  const { data: aiStatus, isLoading: aiStatusLoading } = useAiValidation(
+    id && user?.isPremium ? id : ""
+  );
 
   const handleUpgradeToPremium = async () => {
     setUpgrading(true);
@@ -90,7 +87,6 @@ const PollResults = () => {
     setAiSubmitting(true);
     try {
       const data = await api.startAiValidation(id);
-      setAiStatus(data?.status ?? "PENDING");
       toast.success("AI validation started.");
     } catch (err: any) {
       toast.error(err.message || "Failed to start AI validation.");
@@ -450,7 +446,7 @@ const PollResults = () => {
               </DialogContent>
             </Dialog>
 
-            {/* AI Validation Skeleton CTA */}
+            {/* AI Validation Section */}
             <div className="mt-8 border-t border-border pt-6 text-left">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -462,21 +458,100 @@ const PollResults = () => {
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Launch a premium AI validation run for this poll and monitor progress.
-              </p>
-              <Button className="mt-4" onClick={handleAiValidate} disabled={aiSubmitting}>
-                {aiSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...
-                  </>
-                ) : (
-                  "Validate with AI"
-                )}
-              </Button>
-              {aiStatus === "PENDING" && (
-                <p className="mt-3 text-sm font-medium text-primary">Pending...</p>
-              )}
+
+              {!aiStatus ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Launch a premium AI validation run for this poll and monitor progress.
+                  </p>
+                  <Button className="mt-4" onClick={handleAiValidate} disabled={aiSubmitting}>
+                    {aiSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...
+                      </>
+                    ) : (
+                      "Validate with AI"
+                    )}
+                  </Button>
+                </>
+              ) : aiStatus === "PENDING" || aiStatus === "PROCESSING" ? (
+                // Glassmorphic loading card
+                <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 backdrop-blur-sm">
+                  <div className="space-y-4">
+                    {/* Progress bar with pulsing effect */}
+                    <div className="relative h-2 bg-primary/10 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full bg-gradient-to-r from-primary to-primary/50 rounded-full transition-all duration-300",
+                          aiStatus === "PENDING" ? "w-1/3 animate-pulse" : "w-2/3 animate-pulse"
+                        )}
+                      />
+                    </div>
+
+                    {/* Status steps */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {aiStatus === "PENDING" ? (
+                          <Clock className="h-4 w-4 text-primary animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        )}
+                        <span className={cn(
+                          "text-sm font-medium transition-all",
+                          aiStatus !== "PENDING" ? "text-primary" : "text-primary/60 animate-pulse"
+                        )}>
+                          {aiStatus !== "PENDING" ? "Step 1: Fetching Web Competitors" : "Step 1: Fetching Web Competitors"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {aiStatus === "PROCESSING" ? (
+                          <Clock className="h-4 w-4 text-primary animate-spin" />
+                        ) : aiStatus === "PENDING" ? (
+                          <div className="h-4 w-4 rounded-full border-2 border-primary/20" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        )}
+                        <span className={cn(
+                          "text-sm font-medium transition-all",
+                          aiStatus === "PROCESSING" ? "text-primary/60 animate-pulse" : aiStatus === "PENDING" ? "text-muted-foreground" : "text-primary"
+                        )}>
+                          {aiStatus === "PROCESSING" ? "Step 2: Synthesizing Personas" : "Step 2: Synthesizing Personas"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full border-2 border-primary/20" />
+                        <span className="text-sm font-medium text-muted-foreground">Step 3: Generating Analysis</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {aiStatus === "PENDING" ? "Searching current industry trends..." : "Synthesizing market insights..."}
+                    </p>
+                  </div>
+                </div>
+              ) : aiStatus === "COMPLETED" ? (
+                <div className="mt-4 p-4 rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/5 to-green-500/5 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <span className="font-medium text-green-700">AI Validation Complete!</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Your synthetic audience analysis is ready. Detailed results coming soon.
+                  </p>
+                </div>
+              ) : aiStatus === "FAILED" ? (
+                <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-gradient-to-br from-red-500/5 to-red-500/5 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <span className="font-medium text-red-700">Validation Failed</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Please try again later or contact support if the problem persists.
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-8 flex gap-3">

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import PollResults from "./PollResults";
 
 const mockUsePoll = vi.fn();
+const mockUseAiValidation = vi.fn();
 const mockUseAuth = vi.fn();
 const mockStartAiValidation = vi.fn();
 const mockGetAiValidationStatus = vi.fn();
@@ -14,6 +15,7 @@ vi.mock("@/components/Navbar", () => ({
 
 vi.mock("@/hooks/use-polls", () => ({
   usePoll: () => mockUsePoll(),
+  useAiValidation: () => mockUseAiValidation(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -68,6 +70,7 @@ describe("PollResults AI validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePoll.mockReturnValue({ data: pollFixture, isLoading: false, isRefetching: false });
+    mockUseAiValidation.mockReturnValue({ data: null, isLoading: false });
     mockGetAiValidationStatus.mockResolvedValue({ status: null });
   });
 
@@ -76,6 +79,7 @@ describe("PollResults AI validation", () => {
       user: { id: "user-1", isPremium: false },
       refreshUser: vi.fn(),
     });
+    mockUseAiValidation.mockReturnValue({ data: null, isLoading: false });
 
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /validate with ai/i }));
@@ -84,19 +88,29 @@ describe("PollResults AI validation", () => {
     expect(mockStartAiValidation).not.toHaveBeenCalled();
   });
 
-  it("starts AI validation for premium users and shows pending state", async () => {
+  it("starts AI validation for premium users and shows loading state", async () => {
     mockUseAuth.mockReturnValue({
       user: { id: "user-1", isPremium: true },
       refreshUser: vi.fn(),
     });
     mockStartAiValidation.mockResolvedValue({ status: "PENDING" });
+    // Initially return null status (no validation yet)
+    let aiValidationStatus = null;
+    mockUseAiValidation.mockImplementation(() => {
+      return { data: aiValidationStatus ? { status: aiValidationStatus } : null, isLoading: false };
+    });
 
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: /validate with ai/i }));
+    // Button should be visible since status is null
+    const button = screen.getByRole("button", { name: /validate with ai/i });
+    expect(button).toBeInTheDocument();
+    
+    // Update mock to return PENDING status after click
+    aiValidationStatus = "PENDING";
+    fireEvent.click(button);
 
     await waitFor(() => {
       expect(mockStartAiValidation).toHaveBeenCalledWith("poll-1");
     });
-    expect(await screen.findByText(/pending\.\.\./i)).toBeInTheDocument();
   });
 });

@@ -26,6 +26,20 @@ export const usePoll = (id: string) => {
     });
 };
 
+export const useAiValidation = (pollId: string) => {
+    return useQuery({
+        queryKey: ["aiValidation", pollId],
+        queryFn: () => api.getAiValidationStatus(pollId),
+        enabled: !!pollId,
+        // Poll every 3 seconds while status is PENDING or PROCESSING
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            return status === 'PENDING' || status === 'PROCESSING' ? 3000 : false;
+        },
+        refetchIntervalInBackground: true,
+    });
+};
+
 export const useTrendingPolls = (limit: number = 10) => {
     return useQuery({
         queryKey: ["trendingPolls", limit],
