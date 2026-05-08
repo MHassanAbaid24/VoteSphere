@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/httpClient";
+import { api, AiInsightStatus } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,8 @@ const PollResults = () => {
   const [loadingDemographics, setLoadingDemographics] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AiInsightStatus | null>(null);
+  const [aiSubmitting, setAiSubmitting] = useState(false);
 
   useEffect(() => {
     if (id && user?.isPremium) {
@@ -43,6 +46,13 @@ const PollResults = () => {
         .finally(() => setLoadingDemographics(false));
     }
   }, [id, user]);
+
+  useEffect(() => {
+    if (!id || !user?.isPremium) return;
+    api.getAiValidationStatus(id)
+      .then((data) => setAiStatus(data?.status ?? null))
+      .catch(() => { });
+  }, [id, user?.isPremium]);
 
   const handleUpgradeToPremium = async () => {
     setUpgrading(true);
@@ -68,6 +78,25 @@ const PollResults = () => {
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Results link copied to clipboard!");
+  };
+
+  const handleAiValidate = async () => {
+    if (!id) return;
+    if (!user?.isPremium) {
+      setUpgradeOpen(true);
+      return;
+    }
+
+    setAiSubmitting(true);
+    try {
+      const data = await api.startAiValidation(id);
+      setAiStatus(data?.status ?? "PENDING");
+      toast.success("AI validation started.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start AI validation.");
+    } finally {
+      setAiSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -420,6 +449,35 @@ const PollResults = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* AI Validation Skeleton CTA */}
+            <div className="mt-8 border-t border-border pt-6 text-left">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" /> AI Synthetic Audience Validation
+                </h3>
+                {!user?.isPremium && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 gap-1 font-semibold">
+                    <Sparkles className="h-3.5 w-3.5" /> PRO
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Launch a premium AI validation run for this poll and monitor progress.
+              </p>
+              <Button className="mt-4" onClick={handleAiValidate} disabled={aiSubmitting}>
+                {aiSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...
+                  </>
+                ) : (
+                  "Validate with AI"
+                )}
+              </Button>
+              {aiStatus === "PENDING" && (
+                <p className="mt-3 text-sm font-medium text-primary">Pending...</p>
+              )}
+            </div>
 
             <div className="mt-8 flex gap-3">
               <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">

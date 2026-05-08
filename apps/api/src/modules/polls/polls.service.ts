@@ -385,3 +385,53 @@ export const getFeaturedPoll = async () => {
     return enrichedPoll;
   });
 };
+
+export const startAiValidation = async (pollId: string, userId: string) => {
+  const poll = await prisma.poll.findFirst({
+    where: { id: pollId, creatorId: userId, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!poll) {
+    throw new Error('Poll not found');
+  }
+
+  const aiInsight = await prisma.aiInsight.upsert({
+    where: { pollId },
+    create: {
+      pollId,
+      status: 'PENDING',
+    },
+    update: {
+      status: 'PENDING',
+      errorMessage: null,
+    },
+    select: {
+      status: true,
+      updatedAt: true,
+    },
+  });
+
+  return aiInsight;
+};
+
+export const getAiValidationStatus = async (pollId: string, userId: string) => {
+  const poll = await prisma.poll.findFirst({
+    where: { id: pollId, creatorId: userId, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!poll) {
+    throw new Error('Poll not found');
+  }
+
+  const aiInsight = await prisma.aiInsight.findUnique({
+    where: { pollId },
+    select: {
+      status: true,
+      updatedAt: true,
+    },
+  });
+
+  return aiInsight;
+};

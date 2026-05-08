@@ -159,6 +159,7 @@ model Poll {
   questions     Question[]
   votes         Vote[]
   notifications Notification[]
+  aiInsight     AiInsight?
 
   @@index([creatorId])
   @@index([status, visibility])
@@ -166,6 +167,32 @@ model Poll {
   @@index([createdAt(sort: Desc)])
   @@index([totalVotes(sort: Desc)])
   @@map("polls")
+}
+
+enum AiInsightStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model AiInsight {
+  id              String          @id @default(cuid())
+  pollId           String          @unique
+  status           AiInsightStatus @default(PENDING)
+  score            Int?
+  summary          String?
+  simulatedVotes   Json?
+  personaFeedback  Json?
+  sources          Json?
+  errorMessage     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("ai_insights")
 }
 
 enum PollStatus {

@@ -1,6 +1,13 @@
 import { Poll } from "@/types";
 import { apiClient } from "./httpClient";
 
+export type AiInsightStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+
+export type AiInsightResponse = {
+    status: AiInsightStatus;
+    updatedAt?: string;
+} | null;
+
 const mapPoll = (p: any): Poll => ({
   id: p.id,
   creatorId: p.creatorId,
@@ -202,5 +209,31 @@ export const api = {
             console.error(`Error marking notification ${id} as read:`, err);
             throw err;
         }
-    }
+    },
+
+    startAiValidation: async (pollId: string): Promise<AiInsightResponse> => {
+        try {
+            const res = await apiClient.post(`/v1/polls/${pollId}/ai-validate`);
+            if (res.data?.success) {
+                return res.data?.data ?? null;
+            }
+            throw new Error(res.data?.error?.message || "Failed to start AI validation");
+        } catch (err: any) {
+            console.error(`Error starting AI validation for poll ${pollId}:`, err);
+            throw new Error(err.response?.data?.error?.message || err.message || "Failed to start AI validation");
+        }
+    },
+
+    getAiValidationStatus: async (pollId: string): Promise<AiInsightResponse> => {
+        try {
+            const res = await apiClient.get(`/v1/polls/${pollId}/ai-validate`);
+            if (res.data?.success) {
+                return res.data?.data ?? null;
+            }
+            return null;
+        } catch (err) {
+            console.error(`Error fetching AI validation status for poll ${pollId}:`, err);
+            return null;
+        }
+    },
 };

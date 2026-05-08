@@ -9,6 +9,7 @@ import * as pollsService from './polls.service';
 import { ZodIssue } from 'zod';
 import { uploadToS3 } from '../../lib/s3';
 import { getRedisSubClient, isRedisHealthy } from '../../lib/cache';
+import { assertPremium, ForbiddenError } from '../../lib/auth-guards';
 
 export const pollsRouter = new Hono();
 
@@ -311,6 +312,68 @@ pollsRouter.post('/:id/cover', authMiddleware, async (c) => {
       data: updatedPoll,
     });
   } catch (err: any) {
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
+// POST /v1/polls/:id/ai-validate
+pollsRouter.post('/:id/ai-validate', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as never) as { id: string; role: string; isPremium: boolean } | undefined;
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    assertPremium(user.isPremium, user.role);
+
+    const pollId = c.req.param('id');
+    const aiInsight = await pollsService.startAiValidation(pollId as string, user.id);
+
+    return c.json({
+      success: true,
+      data: aiInsight,
+    });
+  } catch (err: any) {
+    if (err instanceof ForbiddenError) {
+      return c.json({ success: false, error: { code: 'FORBIDDEN', message: err.message } }, 403);
+    }
+    if (err.message === 'Poll not found') {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: err.message } }, 404);
+    }
+    return c.json(
+      { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
+      400
+    );
+  }
+});
+
+// GET /v1/polls/:id/ai-validate
+pollsRouter.get('/:id/ai-validate', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user' as never) as { id: string; role: string; isPremium: boolean } | undefined;
+    if (!user) {
+      return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401);
+    }
+
+    assertPremium(user.isPremium, user.role);
+
+    const pollId = c.req.param('id');
+    const aiInsight = await pollsService.getAiValidationStatus(pollId as string, user.id);
+
+    return c.json({
+      success: true,
+      data: aiInsight,
+    });
+  } catch (err: any) {
+    if (err instanceof ForbiddenError) {
+      return c.json({ success: false, error: { code: 'FORBIDDEN', message: err.message } }, 403);
+    }
+    if (err.message === 'Poll not found') {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: err.message } }, 404);
+    }
     return c.json(
       { success: false, error: { code: 'BAD_REQUEST', message: err.message } },
       400
