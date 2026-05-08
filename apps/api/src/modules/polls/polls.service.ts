@@ -420,13 +420,13 @@ export const startAiValidation = async (pollId: string, userId: string) => {
 };
 
 /**
- * Background worker that performs AI validation with real web search
+ * Background worker that performs AI validation with real web search and Gemini personas
  * Transitions status: PENDING -> PROCESSING -> COMPLETED
  */
 const simulateAiValidationBackground = async (pollId: string) => {
   try {
     // Import here to avoid circular dependencies
-    const { fetchTavilySearch } = await import('../../services/ai.service');
+    const { fetchTavilySearch, generateGeminiPersonas } = await import('../../services/ai.service');
 
     // Get poll details for search context
     const poll = await prisma.poll.findUnique({
@@ -455,13 +455,18 @@ const simulateAiValidationBackground = async (pollId: string) => {
     // Fetch real Tavily search results
     const sources = await fetchTavilySearch(searchQuery);
 
-    // Wait 8 more seconds (10 total), then transition to COMPLETED with sources
+    // Generate synthetic personas from Gemini (uses Tavily results for context)
+    const pollContext = `${poll.title}: ${poll.description}`;
+    const personas = await generateGeminiPersonas(pollContext, sources);
+
+    // Wait 8 more seconds (10 total), then transition to COMPLETED with sources and personas
     await new Promise(resolve => setTimeout(resolve, 8000));
     await prisma.aiInsight.update({
       where: { pollId },
       data: {
         status: 'COMPLETED',
         sources: sources.length > 0 ? sources : null,
+        personaFeedback: personas.length > 0 ? personas : null,
       },
     });
   } catch (error) {
