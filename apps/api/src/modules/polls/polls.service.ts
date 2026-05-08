@@ -420,21 +420,33 @@ export const startAiValidation = async (pollId: string, userId: string) => {
 };
 
 /**
- * Background worker that performs AI validation with real web search and Gemini personas
+ * Background worker that performs comprehensive AI validation with web search, personas, and vote analysis
  * Transitions status: PENDING -> PROCESSING -> COMPLETED
  */
 const simulateAiValidationBackground = async (pollId: string) => {
   try {
     // Import here to avoid circular dependencies
-    const { fetchTavilySearch, generateGeminiPersonas } = await import('../../services/ai.service');
+    const { fetchTavilySearch, generateGeminiPersonas, generateGeminiValidation } = await import('../../services/ai.service');
 
-    // Get poll details for search context
+    // Get full poll details including questions and options
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       select: {
         title: true,
         description: true,
         category: true,
+        questions: {
+          select: {
+            id: true,
+            text: true,
+            options: {
+              select: {
+                id: true,
+                text: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -459,7 +471,16 @@ const simulateAiValidationBackground = async (pollId: string) => {
     const pollContext = `${poll.title}: ${poll.description}`;
     const personas = await generateGeminiPersonas(pollContext, sources);
 
-    // Wait 8 more seconds (10 total), then transition to COMPLETED with sources and personas
+    // Generate vote analysis and strategic recommendations
+    const analysis = await generateGeminiValidation({
+      pollTitle: poll.title,
+      pollDescription: poll.description,
+      questions: poll.questions,
+      sources,
+      personas,
+    });
+
+    // Wait 8 more seconds (10 total), then transition to COMPLETED with all data
     await new Promise(resolve => setTimeout(resolve, 8000));
     await prisma.aiInsight.update({
       where: { pollId },
@@ -467,6 +488,9 @@ const simulateAiValidationBackground = async (pollId: string) => {
         status: 'COMPLETED',
         sources: sources.length > 0 ? sources : null,
         personaFeedback: personas.length > 0 ? personas : null,
+        simulatedVotes: Object.keys(analysis.simulatedVotes).length > 0 ? analysis.simulatedVotes : null,
+        score: analysis.score || null,
+        summary: analysis.summary || null,
       },
     });
   } catch (error) {

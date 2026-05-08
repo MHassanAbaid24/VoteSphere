@@ -47,3 +47,42 @@ describe('AI Service - Gemini Personas', () => {
     expect(Array.isArray(personas)).toBe(true);
   });
 });
+
+describe('AI Service - Gemini Simulated Votes', () => {
+  it('should return empty object when Gemini API key is not configured', async () => {
+    const result = await aiService.generateGeminiValidation({
+      pollTitle: 'Test Poll',
+      pollDescription: 'Test Description',
+      questions: [],
+      sources: [],
+      personas: [],
+    });
+    expect(result).toBeDefined();
+    expect(result.simulatedVotes).toEqual({});
+    expect(result.score).toBe(0);
+    expect(result.summary).toBe('');
+  });
+
+  it('should export SimulatedVoteAnalysis interface with required fields', () => {
+    // Verify the interface is properly exported
+    const mockAnalysis: aiService.SimulatedVoteAnalysis = {
+      simulatedVotes: { question1: { option1: 45, option2: 55 } },
+      score: 75,
+      summary: 'This is feasible',
+    };
+    expect(mockAnalysis.simulatedVotes).toBeDefined();
+    expect(mockAnalysis.score).toBe(75);
+    expect(mockAnalysis.summary).toBe('This is feasible');
+  });
+
+  it('should handle empty questions gracefully', async () => {
+    const result = await aiService.generateGeminiValidation({
+      pollTitle: 'Test',
+      pollDescription: 'Test',
+      questions: [],
+      sources: [],
+      personas: [],
+    });
+    expect(result.simulatedVotes).toEqual({});
+  });
+});

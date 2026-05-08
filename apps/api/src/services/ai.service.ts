@@ -12,6 +12,24 @@ export interface PersonaFeedback {
   avatar?: string;
 }
 
+export interface SimulatedVoteAnalysis {
+  simulatedVotes: Record<string, Record<string, number>>;
+  score: number;
+  summary: string;
+}
+
+export interface ValidateParams {
+  pollTitle: string;
+  pollDescription: string;
+  questions: Array<{
+    id: string;
+    text: string;
+    options: Array<{ id: string; text: string }>;
+  }>;
+  sources: TavilySource[];
+  personas: PersonaFeedback[];
+}
+
 /**
  * Fetches search results from Tavily API
  * Returns top sources relevant to the query
@@ -148,5 +166,141 @@ Generate personas that represent different perspectives and demographics relevan
   } catch (error) {
     console.error('Error generating Gemini personas:', error);
     return [];
+  }
+};
+
+/**
+ * Generates comprehensive vote analysis using Gemini API
+ * Creates simulated vote distributions and feasibility score
+ */
+export const generateGeminiValidation = async (
+  params: ValidateParams
+): Promise<SimulatedVoteAnalysis> => {
+  if (!env.GEMINI_API_KEY) {
+    console.warn('Gemini API key not configured. Skipping vote analysis.');
+    return {
+      simulatedVotes: {},
+      score: 0,
+      summary: '',
+    };
+  }
+
+  try {
+    // Build question context for prompt
+    const questionsContext = params.questions
+      .map((q) => `Q: ${q.text}\nOptions: ${q.options.map((o) => `[${o.id}] ${o.text}`).join(', ')}`)
+      .join('\n\n');
+
+    const sourceTitles = params.sources.map((s) => s.title).join(', ');
+    const personaDescriptions = params.personas
+      .map((p) => `${p.name} (${p.role}): "${p.quote}"`)
+      .join('\n');
+
+    const prompt = `Based on the following poll details, market research sources, and target personas, perform a comprehensive market validation analysis.
+
+Poll: ${params.pollTitle}
+Description: ${params.pollDescription}
+
+Questions & Options:
+${questionsContext}
+
+Market Research Sources: ${sourceTitles || 'None'}
+
+Target Personas:
+${personaDescriptions || 'No personas provided'}
+
+Generate a simulated vote distribution across 100 voters from the target personas and market segments. For each question, calculate the percentage distribution across options (must sum to 100% per question).
+
+Return a JSON object with:
+{
+  "simulatedVotes": {
+    "questionId": {
+      "optionId": number,
+      ...
+    },
+    ...
+  },
+  "score": number (0-100 feasibility score),
+  "summary": "string (2-3 sentence executive summary of strategic recommendations)"
+}
+
+Ensure the simulatedVotes object matches the structure above with question IDs as keys and option ID → vote count mappings as values. Make the analysis realistic based on the market research and personas.`;
+
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Gemini API error: ${response.status}`);
+      return {
+        simulatedVotes: {},
+        score: 0,
+        summary: '',
+      };
+    }
+
+    const data = await response.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+
+    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+      return {
+        simulatedVotes: {},
+        score: 0,
+        summary: '',
+      };
+    }
+
+    const textContent = data.candidates[0].content.parts[0].text;
+
+    // Parse JSON from response
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        simulatedVotes: {},
+        score: 0,
+        summary: '',
+      };
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]) as SimulatedVoteAnalysis;
+
+    // Validate required fields
+    if (!analysis.simulatedVotes || !analysis.summary || typeof analysis.score !== 'number') {
+      return {
+        simulatedVotes: analysis.simulatedVotes || {},
+        score: analysis.score || 0,
+        summary: analysis.summary || '',
+      };
+    }
+
+    return analysis;
+  } catch (error) {
+    console.error('Error generating Gemini validation:', error);
+    return {
+      simulatedVotes: {},
+      score: 0,
+      summary: '',
+    };
   }
 };
