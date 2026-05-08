@@ -532,14 +532,42 @@ const PollResults = () => {
                   </div>
                 </div>
               ) : aiStatus === "COMPLETED" ? (
-                <div className="mt-4 p-4 rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/5 to-green-500/5 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    <span className="font-medium text-green-700">AI Validation Complete!</span>
+                <div className="mt-4 space-y-4">
+                  <div className="p-4 rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/5 to-green-500/5 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <span className="font-medium text-green-700">AI Validation Complete!</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your synthetic audience analysis is ready. Detailed results coming soon.
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your synthetic audience analysis is ready. Detailed results coming soon.
-                  </p>
+
+                  {/* Sources Section */}
+                  {aiStatus && typeof aiStatus === 'object' && 'sources' in aiStatus && Array.isArray(aiStatus.sources) && aiStatus.sources.length > 0 && (
+                    <div className="p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
+                      <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-primary" /> Verified References & Sources
+                      </h4>
+                      <div className="space-y-2">
+                        {(aiStatus.sources as Array<{ title?: string; url?: string }>).map((source, idx) => (
+                          source.title && source.url ? (
+                            <div key={idx} className="group">
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors group-hover:underline"
+                              >
+                                <Badge variant="outline" className="text-xs">Source {idx + 1}</Badge>
+                                <span className="truncate max-w-xs">{source.title}</span>
+                              </a>
+                            </div>
+                          ) : null
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : aiStatus === "FAILED" ? (
                 <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-gradient-to-br from-red-500/5 to-red-500/5 backdrop-blur-sm">

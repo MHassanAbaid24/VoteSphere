@@ -420,11 +420,28 @@ export const startAiValidation = async (pollId: string, userId: string) => {
 };
 
 /**
- * Background worker that simulates AI validation progress
+ * Background worker that performs AI validation with real web search
  * Transitions status: PENDING -> PROCESSING -> COMPLETED
  */
 const simulateAiValidationBackground = async (pollId: string) => {
   try {
+    // Import here to avoid circular dependencies
+    const { fetchTavilySearch } = await import('../../services/ai.service');
+
+    // Get poll details for search context
+    const poll = await prisma.poll.findUnique({
+      where: { id: pollId },
+      select: {
+        title: true,
+        description: true,
+        category: true,
+      },
+    });
+
+    if (!poll) {
+      throw new Error('Poll not found');
+    }
+
     // Wait 2 seconds, then transition to PROCESSING
     await new Promise(resolve => setTimeout(resolve, 2000));
     await prisma.aiInsight.update({
@@ -432,11 +449,20 @@ const simulateAiValidationBackground = async (pollId: string) => {
       data: { status: 'PROCESSING' },
     });
 
-    // Wait 8 more seconds (10 total), then transition to COMPLETED
+    // Construct search query from poll context
+    const searchQuery = `${poll.title} ${poll.description} market research ${poll.category || ''}`;
+
+    // Fetch real Tavily search results
+    const sources = await fetchTavilySearch(searchQuery);
+
+    // Wait 8 more seconds (10 total), then transition to COMPLETED with sources
     await new Promise(resolve => setTimeout(resolve, 8000));
     await prisma.aiInsight.update({
       where: { pollId },
-      data: { status: 'COMPLETED' },
+      data: {
+        status: 'COMPLETED',
+        sources: sources.length > 0 ? sources : null,
+      },
     });
   } catch (error) {
     console.error(`Error in AI validation background worker for poll ${pollId}:`, error);
@@ -446,7 +472,7 @@ const simulateAiValidationBackground = async (pollId: string) => {
         where: { pollId },
         data: {
           status: 'FAILED',
-          errorMessage: 'Background worker encountered an error',
+          errorMessage: error instanceof Error ? error.message : 'Background worker encountered an error',
         },
       });
     } catch (_err) {
@@ -469,7 +495,14 @@ export const getAiValidationStatus = async (pollId: string, userId: string) => {
   const aiInsight = await prisma.aiInsight.findUnique({
     where: { pollId },
     select: {
+      id: true,
       status: true,
+      score: true,
+      summary: true,
+      simulatedVotes: true,
+      personaFeedback: true,
+      sources: true,
+      errorMessage: true,
       updatedAt: true,
     },
   });
