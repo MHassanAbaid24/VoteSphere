@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Calendar, Share2, ArrowLeft, Loader2, Info, Sparkles, AlertCircle, BarChart3, CheckCircle2, Clock } from "lucide-react";
 import { usePoll, useAiValidation } from "@/hooks/use-polls";
 import { PersonaCarousel } from "@/components/PersonaCarousel";
+import { FeasibilityScore } from "@/components/FeasibilityScore";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -575,6 +576,14 @@ const PollResults = () => {
                     <div className="p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
                       <PersonaCarousel personas={aiStatus.personaFeedback as Array<{ name: string; role: string; quote: string; avatar?: string }>} />
                     </div>
+                  )}
+
+                  {/* Feasibility Score Section */}
+                  {aiStatus && typeof aiStatus === 'object' && 'score' in aiStatus && aiStatus.score && aiStatus.score > 0 && (
+                    <FeasibilityScore 
+                      score={aiStatus.score as number} 
+                      summary={aiStatus.summary as string || 'Analysis complete'} 
+                    />
                   )}
                 </div>
               ) : aiStatus === "FAILED" ? (
