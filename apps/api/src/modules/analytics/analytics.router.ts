@@ -51,6 +51,26 @@ analyticsRouter.get('/polls/:id/demographics', authMiddleware, async (c) => {
     }
 
     const pollId = c.req.param('id') || '';
+    
+    const poll = await prisma.poll.findUnique({
+      where: { id: pollId },
+      select: { creatorId: true },
+    });
+
+    if (!poll) {
+      return c.json(
+        { success: false, error: { code: 'NOT_FOUND', message: 'Poll not found.' } },
+        404
+      );
+    }
+
+    if (poll.creatorId !== user.id) {
+      return c.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Only the poll owner can access demographic insights.' } },
+        403
+      );
+    }
+
     const result = await analyticsService.getDemographics(pollId);
 
     return c.json({

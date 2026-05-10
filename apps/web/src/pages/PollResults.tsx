@@ -37,8 +37,12 @@ const PollResults = () => {
   const [upgrading, setUpgrading] = useState(false);
   const [aiSubmitting, setAiSubmitting] = useState(false);
 
+  // Use refetchInterval: 3000 to simulate live updates every 3 seconds
+  const { data: poll, isLoading, isRefetching } = usePoll(id || "");
+  const isOwner = !!(user && poll && poll.creatorId === user.id);
+
   useEffect(() => {
-    if (id && user?.isPremium) {
+    if (id && isOwner && user?.isPremium) {
       setLoadingDemographics(true);
       apiClient.get(`/v1/analytics/polls/${id}/demographics`)
         .then((res) => {
@@ -49,11 +53,11 @@ const PollResults = () => {
         .catch(() => { })
         .finally(() => setLoadingDemographics(false));
     }
-  }, [id, user]);
+  }, [id, user, isOwner]);
 
   // Use the useAiValidation hook to automatically poll status
   const { data: aiStatus, isLoading: aiStatusLoading } = useAiValidation(
-    id && user?.isPremium ? id : ""
+    id && isOwner && user?.isPremium ? id : ""
   );
 
   const generationLimitReached = (aiStatus?.generationCount || 0) >= 3;
@@ -76,8 +80,7 @@ const PollResults = () => {
     }
   };
 
-  // Use refetchInterval: 3000 to simulate live updates every 3 seconds
-  const { data: poll, isLoading, isRefetching } = usePoll(id || "");
+
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -126,9 +129,7 @@ const PollResults = () => {
     );
   }
 
-  const isOwner = user && poll.creatorId === user.id;
-
-  if (!isOwner) {
+  if (!isOwner && poll.visibility === "PRIVATE") {
     return (
       <div className="min-h-screen bg-background">
         <Navbar variant="app" />
@@ -276,7 +277,9 @@ const PollResults = () => {
               </div>
             </div>
 
-            {/* Pro Demographics Analytics Section */}
+            {isOwner && (
+              <>
+                {/* Pro Demographics Analytics Section */}
             <div className="mt-8 border-t border-border pt-6 text-left">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -677,6 +680,8 @@ const PollResults = () => {
                 </div>
               ) : null}
             </div>
+              </>
+            )}
 
             <div className="mt-8 flex gap-3">
               <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PollResults from "./PollResults";
 
 const mockUsePoll = vi.fn();
@@ -57,13 +58,19 @@ const pollFixture = {
   options: [],
 };
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={["/poll/poll-1/results"]}>
-      <Routes>
-        <Route path="/poll/:id/results" element={<PollResults />} />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/poll/poll-1/results"]}>
+        <Routes>
+          <Route path="/poll/:id/results" element={<PollResults />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe("PollResults AI validation", () => {
