@@ -129,7 +129,7 @@ const PollResults = () => {
     );
   }
 
-  if (!isOwner && poll.visibility === "PRIVATE") {
+  if (!isOwner && poll.visibility === "private") {
     return (
       <div className="min-h-screen bg-background">
         <Navbar variant="app" />

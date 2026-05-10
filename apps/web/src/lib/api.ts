@@ -27,7 +27,9 @@ const mapPoll = (p: any): Poll => ({
     votes: opt.votes || 0,
   })) || [],
   status: p.status?.toLowerCase() === 'active' ? 'active' : 'closed',
-  visibility: p.visibility?.toLowerCase() === 'public' ? 'public' : 'private',
+  visibility: ['public', 'private', 'unlisted'].includes(p.visibility?.toLowerCase()) 
+              ? p.visibility.toLowerCase() as 'public' | 'private' | 'unlisted' 
+              : 'private',
   createdAt: p.createdAt,
   updatedAt: p.updatedAt,
   deletedAt: p.deletedAt,

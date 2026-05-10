@@ -21,7 +21,7 @@ export type Poll = {
     description: string;
     options: PollOption[];
     status: 'active' | 'closed';
-    visibility: 'public' | 'private';
+    visibility: 'public' | 'private' | 'unlisted';
     createdAt: string;
     updatedAt?: string;
     deletedAt?: string;
