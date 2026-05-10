@@ -602,10 +602,10 @@ const PollResults = () => {
                   {aiStatus?.simulatedVotes && 
                    poll && Array.isArray(poll.questions) && poll.questions.length > 0 && 
                    Object.keys(aiStatus.simulatedVotes).length > 0 && (
-                    <div className="p-6 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
-                      <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" /> Real vs. AI Projected Votes
-                      </h3>
+                     <div className="p-6 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
+                       <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+                         <BarChart3 className="h-5 w-5 text-primary" /> Real vs. AI Projected Votes
+                       </h3>
                       <div className="space-y-6">
                         {poll.questions.map((question) => {
                           const simulatedByQuestion = (aiStatus.simulatedVotes as Record<string, Record<string, number>>)[question.id];
@@ -630,14 +630,14 @@ const PollResults = () => {
                           );
                         })}
                       </div>
-                      <div className="mt-6 pt-6 border-t border-white/10 flex gap-6">
+                      <div className="mt-6 pt-6 border-t border-primary/10 flex gap-6">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-gradient-to-r from-blue-500 to-blue-600"></div>
-                          <span className="text-xs text-gray-300">Real Human Votes</span>
+                          <span className="text-xs text-muted-foreground">Real Human Votes</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-gradient-to-r from-purple-500 to-purple-600"></div>
-                          <span className="text-xs text-gray-300">AI Projected Votes</span>
+                          <span className="text-xs text-muted-foreground">AI Projected Votes</span>
                         </div>
                       </div>
                     </div>

@@ -25,7 +25,7 @@ export const VoteComparison = ({ questionText, data }: VoteComparisonProps) => {
 
   return (
     <div className="space-y-4">
-      <h4 className="font-semibold text-white text-sm">{questionText}</h4>
+      <h4 className="font-semibold text-foreground text-sm">{questionText}</h4>
 
       <div className="space-y-3">
         {data.options.map((option) => {
@@ -36,12 +36,12 @@ export const VoteComparison = ({ questionText, data }: VoteComparisonProps) => {
 
           return (
             <div key={option.id} className="space-y-1">
-              <div className="text-xs text-gray-300 font-medium">{option.text}</div>
+              <div className="text-xs text-muted-foreground font-medium">{option.text}</div>
 
               {/* Real Votes */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 min-w-8">Real</span>
-                <div className="flex-1 h-6 bg-white/5 rounded border border-white/10 overflow-hidden">
+                <span className="text-xs text-muted-foreground/80 min-w-8">Real</span>
+                <div className="flex-1 h-6 bg-muted/50 rounded border border-primary/10 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-end px-2 transition-all"
                     style={{ width: `${Math.max(realPercent, 5)}%` }}
@@ -53,8 +53,8 @@ export const VoteComparison = ({ questionText, data }: VoteComparisonProps) => {
 
               {/* Simulated Votes */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 min-w-8">AI</span>
-                <div className="flex-1 h-6 bg-white/5 rounded border border-white/10 overflow-hidden">
+                <span className="text-xs text-muted-foreground/80 min-w-8">AI</span>
+                <div className="flex-1 h-6 bg-muted/50 rounded border border-primary/10 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-end px-2 transition-all"
                     style={{ width: `${Math.max(simPercent, 5)}%` }}
