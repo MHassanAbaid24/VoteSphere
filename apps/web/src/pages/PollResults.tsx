@@ -26,6 +26,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Copy, Download, FileText, ChevronDown } from "lucide-react";
+import { formatPollAsText, formatPollAsCsv, downloadBlob } from "@/lib/export-utils";
+
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
   const { user, refreshUser } = useAuth();
@@ -85,6 +95,29 @@ const PollResults = () => {
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Results link copied to clipboard!");
+  };
+
+  const handleCopyText = () => {
+    if (!poll) return;
+    try {
+      const text = formatPollAsText(poll);
+      navigator.clipboard.writeText(text);
+      toast.success("Results copied as plain text!");
+    } catch {
+      toast.error("Failed to copy text results.");
+    }
+  };
+
+  const handleDownloadCsv = () => {
+    if (!poll) return;
+    try {
+      const csv = formatPollAsCsv(poll);
+      const safeTitle = (poll.title || "poll").toLowerCase().replace(/[^a-z0-9]/g, "-");
+      downloadBlob(csv, `votesphere-export-${safeTitle}.csv`, "text/csv");
+      toast.success("Downloading CSV export...");
+    } catch {
+      toast.error("Failed to generate CSV download.");
+    }
   };
 
   const handleAiValidate = async () => {
@@ -684,10 +717,40 @@ const PollResults = () => {
             )}
 
             <div className="mt-8 flex gap-3">
-              <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">
-                <Share2 className="mr-2 h-4 w-4" /> Share Results
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="flex-1 font-semibold shadow-md" size="lg">
+                    <Share2 className="mr-2 h-4 w-4" /> 
+                    Share & Export 
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[240px] p-2">
+                  <DropdownMenuItem onClick={handleShare} className="flex items-center cursor-pointer">
+                    <Copy className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span>Copy Results Link</span>
+                  </DropdownMenuItem>
+                  
+                  {isOwner && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                        Data Exports
+                      </div>
+                      <DropdownMenuItem onClick={handleCopyText} className="flex items-center cursor-pointer">
+                        <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span>Copy as Plain Text</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadCsv} className="flex items-center cursor-pointer">
+                        <Download className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span>Download CSV</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
           </CardContent>
         </Card>
       </main>
