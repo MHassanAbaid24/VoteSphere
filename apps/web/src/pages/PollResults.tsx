@@ -552,7 +552,7 @@ const PollResults = () => {
                     </div>
                     <p className="text-sm text-muted-foreground flex flex-col">
                       <span>Your synthetic audience analysis is ready. Detailed results coming soon.</span>
-                      <span className="text-xs font-semibold mt-1 text-green-800/60">Credits used: {aiStatus?.generationCount || 1}/3</span>
+                      <span className="text-xs font-semibold mt-1 text-green-800/60">Credits used: {aiStatus?.generationCount ?? 0}/3</span>
                     </p>
                     <Button size="sm" variant="outline" className="mt-3 bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20 hover:text-green-800" onClick={handleAiValidate} disabled={aiSubmitting || generationLimitReached}>
                       {aiSubmitting ? (
