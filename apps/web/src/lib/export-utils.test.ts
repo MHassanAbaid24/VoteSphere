@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { formatPollAsText, formatPollAsCsv, downloadBlob } from "./export-utils";
 import { Poll } from "@/types";
@@ -113,6 +114,72 @@ describe("export-utils", () => {
       expect(mockAppend).toHaveBeenCalled();
       expect(mockRemove).toHaveBeenCalled();
       expect(revokeObjectURL).toHaveBeenCalledWith("blob:test-url");
+    });
+  });
+
+  describe("downloadPollAsExcel", () => {
+    it("lazily loads xlsx module and constructs sheets based on poll data", async () => {
+      // Setup mocks for the internal dynamic import
+      const mockAoaToSheet = vi.fn().mockReturnValue({});
+      const mockBookNew = vi.fn().mockReturnValue({});
+      const mockBookAppendSheet = vi.fn();
+      const mockWriteFile = vi.fn();
+
+      // Mock the dynamic import by defining what the 'xlsx' module returns when imported
+      vi.doMock("xlsx", () => ({
+        default: {
+          utils: {
+            aoa_to_sheet: mockAoaToSheet,
+            book_new: mockBookNew,
+            book_append_sheet: mockBookAppendSheet,
+          },
+          writeFile: mockWriteFile,
+        },
+        utils: {
+          aoa_to_sheet: mockAoaToSheet,
+          book_new: mockBookNew,
+          book_append_sheet: mockBookAppendSheet,
+        },
+        writeFile: mockWriteFile,
+      }));
+
+      // Re-import under vitest doMock context requires async dynamic import usually, 
+      // but here we are simply calling our exported function which itself calls dynamic import.
+      const { downloadPollAsExcel } = await import("./export-utils");
+      
+      const mockAiStatus = {
+        status: "COMPLETED",
+        score: 85,
+        summary: "Strong indicators",
+        personaFeedback: [{ name: "Anna", role: "Designer", quote: "Love it" }],
+        sources: [{ title: "Forbes", url: "https://forbes.com" }]
+      };
+
+      await downloadPollAsExcel(mockPoll, mockAiStatus);
+
+      // Verify bookkeeping occurred
+      expect(mockBookNew).toHaveBeenCalled();
+      
+      // Verify sheet generation happened for BOTH tabs (Results and AI Validation)
+      expect(mockAoaToSheet).toHaveBeenCalledTimes(2);
+
+      // Check contents of the first sheet generation call (General Results)
+      const call1Args = mockAoaToSheet.mock.calls[0][0];
+      expect(call1Args[1]).toContain("Test Poll & Results"); // Check title index
+      // Check question rows
+      expect(call1Args.some((row: any) => row.includes("Question One?"))).toBe(true);
+
+      // Check contents of the second sheet generation call (AI Validation)
+      const call2Args = mockAoaToSheet.mock.calls[1][0];
+      expect(call2Args.some((row: any) => row.includes("Strong indicators"))).toBe(true);
+      expect(call2Args.some((row: any) => row.includes("Anna"))).toBe(true);
+
+      expect(mockBookAppendSheet).toHaveBeenCalledTimes(2);
+      expect(mockBookAppendSheet).toHaveBeenNthCalledWith(1, expect.anything(), expect.anything(), "General Results");
+      expect(mockBookAppendSheet).toHaveBeenNthCalledWith(2, expect.anything(), expect.anything(), "AI Validation");
+
+      expect(mockWriteFile).toHaveBeenCalled();
+      expect(mockWriteFile.mock.calls[0][1]).toContain("votesphere-results-test-poll---results.xlsx");
     });
   });
 });

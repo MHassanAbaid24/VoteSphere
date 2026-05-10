@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Copy, Download, FileText, ChevronDown } from "lucide-react";
-import { formatPollAsText, formatPollAsCsv, downloadBlob } from "@/lib/export-utils";
+import { formatPollAsText, formatPollAsCsv, downloadBlob, downloadPollAsExcel } from "@/lib/export-utils";
 
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
@@ -117,6 +117,18 @@ const PollResults = () => {
       toast.success("Downloading CSV export...");
     } catch {
       toast.error("Failed to generate CSV download.");
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    if (!poll) return;
+    const downloadToast = toast.loading("Preparing Excel workbook...");
+    try {
+      await downloadPollAsExcel(poll, aiStatus);
+      toast.success("Excel file generated successfully!", { id: downloadToast });
+    } catch (err) {
+      console.error("Excel export error:", err);
+      toast.error("Failed to generate Excel document. Please try again.", { id: downloadToast });
     }
   };
 
@@ -744,6 +756,10 @@ const PollResults = () => {
                       <DropdownMenuItem onClick={handleDownloadCsv} className="flex items-center cursor-pointer">
                         <Download className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>Download CSV</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadExcel} className="flex items-center cursor-pointer">
+                        <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span>Download Excel (.xlsx)</span>
                       </DropdownMenuItem>
                     </>
                   )}

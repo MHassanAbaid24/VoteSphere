@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Poll } from "@/types";
 
 /**
@@ -103,4 +104,98 @@ export const downloadBlob = (content: string, filename: string, contentType: str
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+};
+
+/**
+ * Dynamically imports 'xlsx' and generates a multi-sheet workbook containing both
+ * raw data outputs and synthetic audience feedback vectors.
+ */
+export const downloadPollAsExcel = async (poll: Poll, aiStatus?: any) => {
+  // 1. Perform deferred import
+  const XLSX = await import("xlsx");
+
+  const workbook = XLSX.utils.book_new();
+
+  // 2. Construct "General Results" Worksheet Content
+  const resultsData: any[][] = [
+    ["📊 Poll Results Export", "", "", ""],
+    ["Title:", poll.title || "Untitled", "", ""],
+    ["Description:", poll.description || "N/A", "", ""],
+    ["Generated:", new Date().toLocaleString(), "", ""],
+    ["Total Votes:", poll.totalVotes || 0, "", ""],
+    [],
+    ["Question", "Option", "Votes", "Percentage"]
+  ];
+
+  const questions = poll.questions && poll.questions.length > 0
+    ? poll.questions
+    : [
+      {
+        id: "default",
+        text: poll.title || "General Response",
+        options: poll.options || [],
+      },
+    ];
+
+  questions.forEach((q) => {
+    const questionTotalVotes = (q.options || []).reduce((sum: number, opt: any) => sum + (opt.votes || 0), 0);
+
+    (q.options || []).forEach((opt: any) => {
+      const percentage = questionTotalVotes > 0
+        ? Math.round(((opt.votes || 0) / questionTotalVotes) * 100)
+        : 0;
+      resultsData.push([
+        q.text,
+        opt.text,
+        opt.votes || 0,
+        `${percentage}%`
+      ]);
+    });
+  });
+
+  const resultsSheet = XLSX.utils.aoa_to_sheet(resultsData);
+  XLSX.utils.book_append_sheet(workbook, resultsSheet, "General Results");
+
+  // 3. Conditionally Construct "AI Validation" Worksheet Content
+  if (aiStatus && aiStatus.status === "COMPLETED") {
+    const aiData: any[][] = [
+      ["✨ AI Validation & Synthetic Audience Insight", ""],
+      ["Overall Feasibility Score:", aiStatus.score || "N/A"],
+      ["Analysis Summary:", aiStatus.summary || "N/A"],
+      [],
+      ["--- User Persona Feedback ---", ""],
+      ["Name", "Role", "Insight/Quote"]
+    ];
+
+    if (Array.isArray(aiStatus.personaFeedback)) {
+      aiStatus.personaFeedback.forEach((p: any) => {
+        aiData.push([p.name, p.role, p.quote]);
+      });
+    } else {
+      aiData.push(["No persona data available", "", ""]);
+    }
+
+    aiData.push([]);
+    aiData.push(["--- Verified Research Sources ---", ""]);
+    aiData.push(["Source Title", "Reference Link"]);
+
+    if (Array.isArray(aiStatus.sources)) {
+      aiStatus.sources.forEach((src: any) => {
+        if (src.title || src.url) {
+          aiData.push([src.title || "(Untitled)", src.url || ""]);
+        }
+      });
+    } else {
+      aiData.push(["No explicit sources provided", ""]);
+    }
+
+    const aiSheet = XLSX.utils.aoa_to_sheet(aiData);
+    XLSX.utils.book_append_sheet(workbook, aiSheet, "AI Validation");
+  }
+
+  // 4. Save Workbook to local host OS
+  const safeTitle = (poll.title || "poll").toLowerCase().replace(/[^a-z0-9]/g, "-");
+  const filename = `votesphere-results-${safeTitle}.xlsx`;
+  
+  XLSX.writeFile(workbook, filename);
 };
