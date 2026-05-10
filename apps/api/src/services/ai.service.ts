@@ -114,7 +114,7 @@ Return as a JSON array with objects containing: { name, role, quote, avatar }
 
 Generate personas that represent different perspectives and demographics relevant to the poll topic.`;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ Return a JSON object with:
 
 Ensure the simulatedVotes object matches the structure above with question IDs as keys and option ID → vote count mappings as values. Make the analysis realistic based on the market research and personas.`;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

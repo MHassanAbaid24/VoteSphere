@@ -24,6 +24,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   TAVILY_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-flash-latest'),
 });
 
 // Parse and validate environment variables
