@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
 const PollResults = () => {
   const { id } = useParams<{ id: string }>();
   const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [demographics, setDemographics] = useState<any>(null);
   const [loadingDemographics, setLoadingDemographics] = useState(false);
@@ -91,8 +93,10 @@ const PollResults = () => {
 
     setAiSubmitting(true);
     try {
-      const data = await api.startAiValidation(id);
+      await api.startAiValidation(id);
       toast.success("AI validation started.");
+      // Re-fetch status IMMEDIATELY before enabling UI so state cascades correctly to PENDING view.
+      await queryClient.invalidateQueries({ queryKey: ["aiValidation", id] });
     } catch (err: any) {
       toast.error(err.message || "Failed to start AI validation.");
     } finally {

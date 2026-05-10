@@ -15,6 +15,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -44,6 +45,7 @@ const MyPolls = () => {
   const [selectedTab, setSelectedTab] = useState<"ALL" | "DRAFT" | "ACTIVE" | "CLOSED">("ALL");
   const [pollToDelete, setPollToDelete] = useState<string | null>(null);
   const [pollToClose, setPollToClose] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchMyPolls = async () => {
     try {
@@ -65,37 +67,46 @@ const MyPolls = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      setProcessingId(id);
       const res = await apiClient.delete(`/v1/polls/${id}`);
       if (res.data?.success) {
         toast.success("Poll soft deleted successfully");
-        fetchMyPolls();
+        await fetchMyPolls();
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to delete poll.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handlePublish = async (id: string) => {
     try {
+      setProcessingId(id);
       const res = await apiClient.post(`/v1/polls/${id}/publish`);
       if (res.data?.success) {
         toast.success("Poll successfully published!");
-        fetchMyPolls();
+        await fetchMyPolls();
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to publish poll.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleClose = async (id: string) => {
     try {
+      setProcessingId(id);
       const res = await apiClient.post(`/v1/polls/${id}/close`);
       if (res.data?.success) {
         toast.success("Poll successfully closed!");
-        fetchMyPolls();
+        await fetchMyPolls();
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to close poll.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -193,18 +204,34 @@ const MyPolls = () => {
                     )}
 
                     {poll.status === "DRAFT" && (
-                      <Button size="sm" onClick={() => handlePublish(poll.id)} className="bg-success hover:bg-success/90">
-                        <CheckCircle className="mr-1.5 h-3.5 w-3.5" />Publish
+                      <Button 
+                        size="sm" 
+                        onClick={() => handlePublish(poll.id)} 
+                        className="bg-success hover:bg-success/90"
+                        disabled={!!processingId}
+                      >
+                        {processingId === poll.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
+                        Publish
                       </Button>
                     )}
 
                     {poll.status === "ACTIVE" && (
-                      <Button size="sm" variant="secondary" onClick={() => setPollToClose(poll.id)}>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        onClick={() => setPollToClose(poll.id)}
+                        disabled={!!processingId}
+                      >
                         <XCircle className="mr-1.5 h-3.5 w-3.5" />Close Poll
                       </Button>
                     )}
 
-                    <Button size="sm" variant="destructive" onClick={() => setPollToDelete(poll.id)}>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      onClick={() => setPollToDelete(poll.id)}
+                      disabled={!!processingId}
+                    >
                       <Trash className="mr-1.5 h-3.5 w-3.5" />Delete
                     </Button>
                   </div>
