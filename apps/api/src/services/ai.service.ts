@@ -139,8 +139,8 @@ Generate personas that represent different perspectives and demographics relevan
     });
 
     if (!response.ok) {
-      console.error(`Gemini API error: ${response.status}`);
-      return [];
+      const errorBody = await response.text().catch(() => 'Unknown');
+      throw new Error(`Gemini API error during persona generation: ${response.status} - ${errorBody}`);
     }
 
     const data = await response.json() as {
@@ -156,7 +156,7 @@ Generate personas that represent different perspectives and demographics relevan
     // Parse JSON from response
     const jsonMatch = textContent.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return [];
+      throw new Error('Gemini failed to output valid JSON block for personas.');
     }
 
     const personas = JSON.parse(jsonMatch[0]) as PersonaFeedback[];
@@ -165,7 +165,7 @@ Generate personas that represent different perspectives and demographics relevan
     return personas.filter((p) => p.name && p.role && p.quote).slice(0, 5);
   } catch (error) {
     console.error('Error generating Gemini personas:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -251,12 +251,8 @@ Ensure the simulatedVotes object matches the structure above with question IDs a
     });
 
     if (!response.ok) {
-      console.error(`Gemini API error: ${response.status}`);
-      return {
-        simulatedVotes: {},
-        score: 0,
-        summary: '',
-      };
+      const errorBody = await response.text().catch(() => 'Unknown');
+      throw new Error(`Gemini API error during validation: ${response.status} - ${errorBody}`);
     }
 
     const data = await response.json() as {
@@ -276,11 +272,7 @@ Ensure the simulatedVotes object matches the structure above with question IDs a
     // Parse JSON from response
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return {
-        simulatedVotes: {},
-        score: 0,
-        summary: '',
-      };
+      throw new Error('Gemini failed to output valid JSON block for simulated analysis.');
     }
 
     const analysis = JSON.parse(jsonMatch[0]) as SimulatedVoteAnalysis;
@@ -297,10 +289,6 @@ Ensure the simulatedVotes object matches the structure above with question IDs a
     return analysis;
   } catch (error) {
     console.error('Error generating Gemini validation:', error);
-    return {
-      simulatedVotes: {},
-      score: 0,
-      summary: '',
-    };
+    throw error;
   }
 };

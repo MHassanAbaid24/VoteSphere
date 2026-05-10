@@ -544,6 +544,13 @@ const PollResults = () => {
                     <p className="text-sm text-muted-foreground">
                       Your synthetic audience analysis is ready. Detailed results coming soon.
                     </p>
+                    <Button size="sm" variant="outline" className="mt-3 bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20 hover:text-green-800" onClick={handleAiValidate} disabled={aiSubmitting}>
+                      {aiSubmitting ? (
+                        <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Restarting...</>
+                      ) : (
+                        <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Regenerate Analysis</>
+                      )}
+                    </Button>
                   </div>
 
                   {/* Sources Section */}
