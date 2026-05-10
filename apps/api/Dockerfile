@@ -18,7 +18,7 @@ FROM base AS builder
 COPY . .
 RUN bun install --no-frozen-lockfile
 RUN bun run build --filter=api
-RUN bun x prisma generate --schema=apps/api/prisma/schema.prisma
+RUN bun run prisma generate --schema=apps/api/prisma/schema.prisma
 
 # Runner layer
 FROM base AS runner
@@ -28,4 +28,4 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD ["sh", "-c", "bun x prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && bun run apps/api/dist/index.js"]
+CMD ["sh", "-c", "bun run prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && bun run apps/api/dist/index.js"]
