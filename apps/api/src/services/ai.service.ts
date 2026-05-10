@@ -110,7 +110,13 @@ For each persona, provide:
 3. Quote (a 1-2 sentence quote expressing their opinion/concern)
 4. Avatar URL (use a placeholder URL like https://api.dicebear.com/7.x/avataaars/svg?seed=NAME)
 
-Return as a JSON array with objects containing: { name, role, quote, avatar }
+Return a JSON object with a "personas" key holding the array of objects:
+{
+  "personas": [
+    { "name": "string", "role": "string", "quote": "string", "avatar": "string" },
+    ...
+  ]
+}
 
 Generate personas that represent different perspectives and demographics relevant to the poll topic.`;
 
@@ -132,7 +138,7 @@ Generate personas that represent different perspectives and demographics relevan
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 8192,
           responseMimeType: 'application/json',
         },
       }),
@@ -153,16 +159,42 @@ Generate personas that represent different perspectives and demographics relevan
 
     const textContent = data.candidates[0].content.parts[0].text;
 
-    // Parse JSON from response
-    const jsonMatch = textContent.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('Gemini failed to output valid JSON block for personas.');
+    let parsedData: any;
+    try {
+      // Attempt direct parse
+      parsedData = JSON.parse(textContent);
+    } catch (_e) {
+      // Fallback to regex extraction
+      const jsonMatch = textContent.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (jsonMatch) {
+        try {
+          parsedData = JSON.parse(jsonMatch[0]);
+        } catch (__e) {
+          throw new Error('Gemini failed to output parseable JSON block for personas.');
+        }
+      } else {
+        throw new Error('Gemini failed to output any JSON structure for personas.');
+      }
     }
 
-    const personas = JSON.parse(jsonMatch[0]) as PersonaFeedback[];
+    // Normalize output: support both raw array and root object wrappers
+    let personasList: PersonaFeedback[] = [];
+    if (Array.isArray(parsedData)) {
+      personasList = parsedData;
+    } else if (parsedData && typeof parsedData === 'object' && Array.isArray(parsedData.personas)) {
+      personasList = parsedData.personas;
+    } else if (parsedData && typeof parsedData === 'object') {
+      // Look for any array field if they named it something else
+      const key = Object.keys(parsedData).find(k => Array.isArray(parsedData[k]));
+      if (key) personasList = parsedData[key];
+    }
+
+    if (!personasList || personasList.length === 0) {
+      throw new Error('No persona objects found in response JSON.');
+    }
 
     // Ensure all required fields are present
-    return personas.filter((p) => p.name && p.role && p.quote).slice(0, 5);
+    return personasList.filter((p) => p && p.name && p.role && p.quote).slice(0, 5);
   } catch (error) {
     console.error('Error generating Gemini personas:', error);
     throw error;
@@ -188,7 +220,7 @@ export const generateGeminiValidation = async (
   try {
     // Build question context for prompt
     const questionsContext = params.questions
-      .map((q) => `Q: ${q.text}\nOptions: ${q.options.map((o) => `[${o.id}] ${o.text}`).join(', ')}`)
+      .map((q) => `Q: [${q.id}] ${q.text}\nOptions: ${q.options.map((o) => `[${o.id}] ${o.text}`).join(', ')}`)
       .join('\n\n');
 
     const sourceTitles = params.sources.map((s) => s.title).join(', ');
@@ -224,7 +256,7 @@ Return a JSON object with:
   "summary": "string (2-3 sentence executive summary of strategic recommendations)"
 }
 
-Ensure the simulatedVotes object matches the structure above with question IDs as keys and option ID → vote count mappings as values. Make the analysis realistic based on the market research and personas.`;
+Ensure the simulatedVotes object matches the structure above. CRITICAL: Use the exact bracketed strings provided (e.g., "cuid..." from Q: [cuid] and [cuid] Option) directly as the keys for questionId and optionId in your JSON. Do not use question text or option text as keys. Make the analysis realistic based on the market research and personas.`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`, {
       method: 'POST',
@@ -244,7 +276,7 @@ Ensure the simulatedVotes object matches the structure above with question IDs a
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 8192,
           responseMimeType: 'application/json',
         },
       }),
@@ -269,13 +301,21 @@ Ensure the simulatedVotes object matches the structure above with question IDs a
 
     const textContent = data.candidates[0].content.parts[0].text;
 
-    // Parse JSON from response
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Gemini failed to output valid JSON block for simulated analysis.');
+    let analysis: SimulatedVoteAnalysis;
+    try {
+      analysis = JSON.parse(textContent);
+    } catch (_e) {
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          analysis = JSON.parse(jsonMatch[0]);
+        } catch (__e) {
+          throw new Error('Gemini failed to generate parseable JSON for simulated analysis.');
+        }
+      } else {
+        throw new Error('Gemini failed to output valid JSON structure for simulated analysis.');
+      }
     }
-
-    const analysis = JSON.parse(jsonMatch[0]) as SimulatedVoteAnalysis;
 
     // Validate required fields
     if (!analysis.simulatedVotes || !analysis.summary || typeof analysis.score !== 'number') {
