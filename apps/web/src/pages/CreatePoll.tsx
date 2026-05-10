@@ -220,8 +220,8 @@ const CreatePoll = () => {
 
       toast.success("Poll created successfully!");
       navigate(`/poll/${newPoll.id}/results`);
-    } catch (error) {
-      toast.error("Failed to create poll. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create poll. Please try again.");
     }
   };
 
