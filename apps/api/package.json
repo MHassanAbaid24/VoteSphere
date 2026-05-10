@@ -8,7 +8,9 @@
     "start": "bun run dist/index.js",
     "lint": "tsc --noEmit",
     "test": "bun run scripts/migrate-test-db.ts run",
-    "test:watch": "bun run scripts/migrate-test-db.ts"
+    "test:watch": "bun run scripts/migrate-test-db.ts",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate deploy --schema=prisma/schema.prisma"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",
