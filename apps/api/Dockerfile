@@ -9,12 +9,12 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/zod-schemas/package.json ./packages/zod-schemas/
 
 # Install dependencies in non-root environment
-RUN bun install --production
+RUN bun install --production --no-frozen-lockfile
 
 # Builder layer
 FROM base AS builder
 COPY . .
-RUN bun install
+RUN bun install --no-frozen-lockfile
 RUN bun run build --filter=api
 RUN bun x prisma generate --schema=apps/api/prisma/schema.prisma
 
