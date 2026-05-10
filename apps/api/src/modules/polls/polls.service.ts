@@ -23,18 +23,36 @@ const enrichPollsWithSignedUrls = async (polls: any[]) => {
 };
 
 export const createPoll = async (creatorId: string, input: CreatePollInput) => {
-  // Perform synchronous AI safety check BEFORE saving to DB
-  const safetyCheck = await checkPollSafety(
-    input.title,
-    input.description,
-    input.questions.map((q) => ({
-      text: q.text,
-      options: q.options.map((o) => ({ text: o.text })),
-    }))
-  );
+  let moderationData: any = {
+    status: 'APPROVED',
+  };
 
-  if (!safetyCheck.allowed) {
-    throw new Error(`Poll content rejected by moderation: ${safetyCheck.reason || 'Indecent or invalid content detected.'}`);
+  try {
+    // Perform synchronous AI safety check BEFORE saving to DB
+    const safetyCheck = await checkPollSafety(
+      input.title,
+      input.description,
+      input.questions.map((q) => ({
+        text: q.text,
+        options: q.options.map((o) => ({ text: o.text })),
+      }))
+    );
+
+    if (!safetyCheck.allowed) {
+      throw new Error(`Poll content rejected by moderation: ${safetyCheck.reason || 'Indecent or invalid content detected.'}`);
+    }
+  } catch (error) {
+    // If this is the validation error we threw explicitly above, re-throw it
+    if (error instanceof Error && error.message.includes('Poll content rejected by moderation:')) {
+      throw error;
+    }
+
+    // Fail-open on external API timeouts or failures
+    console.error('AI Moderation check failed, falling back to async PENDING queue:', error);
+    moderationData = {
+      status: 'PENDING',
+      nextRetryAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes from now
+    };
   }
 
   const poll = await prisma.poll.create({
@@ -59,9 +77,7 @@ export const createPoll = async (creatorId: string, input: CreatePollInput) => {
         })),
       },
       moderation: {
-        create: {
-          status: 'APPROVED',
-        },
+        create: moderationData,
       },
     },
     include: {

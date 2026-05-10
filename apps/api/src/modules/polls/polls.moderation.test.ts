@@ -103,4 +103,45 @@ describe('Poll Synchronous Moderation', () => {
     const pollCount = await prisma.poll.count();
     expect(pollCount).toBe(0);
   });
+
+  it('should fail-open to PENDING if the AI service throws a network error', async () => {
+    // Arrange
+    vi.mocked(aiService.checkPollSafety).mockRejectedValue(new Error('API timeout or DNS failure'));
+
+    const mockInput = {
+      title: 'Resilient Poll',
+      description: 'Content created during outages',
+      questions: [
+        {
+          text: 'Sample Question?',
+          options: [{ text: 'A' }, { text: 'B' }],
+        },
+      ],
+    };
+
+    // Act
+    const result = await pollsService.createPoll(testUserId, mockInput as any);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.title).toBe('Resilient Poll');
+
+    // Verify the DB contains both poll and the PENDING moderation row
+    const savedPoll = await prisma.poll.findUnique({
+      where: { id: result.id },
+      include: { moderation: true },
+    });
+
+    expect(savedPoll).toBeDefined();
+    expect(savedPoll?.moderation).toBeDefined();
+    expect(savedPoll?.moderation?.status).toBe('PENDING');
+    
+    // nextRetryAt should exist and be roughly 5 minutes in the future
+    expect(savedPoll?.moderation?.nextRetryAt).toBeDefined();
+    const nextRetry = savedPoll?.moderation?.nextRetryAt as Date;
+    const fiveMinsFromNow = Date.now() + 5 * 60 * 1000;
+    
+    // Confirm the timestamp aligns reasonably well with roughly 5 mins deviation tolerant within 10 seconds execution jitter
+    expect(Math.abs(nextRetry.getTime() - fiveMinsFromNow)).toBeLessThan(10000); 
+  });
 });
