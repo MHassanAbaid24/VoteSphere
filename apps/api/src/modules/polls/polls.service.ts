@@ -472,8 +472,17 @@ const simulateAiValidationBackground = async (pollId: string) => {
       data: { status: 'PROCESSING' },
     });
 
-    // Construct search query from poll context
-    const searchQuery = `${poll.title} ${poll.description} market research ${poll.category || ''}`;
+    // Construct varied search query from poll context to get different sources on regeneration
+    const researchModifiers = [
+      "market research analysis",
+      "latest consumer trends",
+      "recent news and statistics",
+      "current industry controversy",
+      "expert demographic reports",
+      "upcoming forecast projections"
+    ];
+    const randomModifier = researchModifiers[Math.floor(Math.random() * researchModifiers.length)];
+    const searchQuery = `${poll.title} ${poll.category || ''} ${randomModifier}`;
 
     // Fetch real Tavily search results
     const sources = await fetchTavilySearch(searchQuery);
