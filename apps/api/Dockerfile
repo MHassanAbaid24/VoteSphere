@@ -31,4 +31,4 @@ COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD ["sh", "-c", "cd apps/api && bun run prisma:migrate && bun run dist/index.js"]
+CMD ["sh", "-c", "cd apps/api && bun run prisma:generate && bun run prisma:migrate && bun run dist/index.js"]
