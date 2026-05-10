@@ -10,6 +10,7 @@ export type AiInsightResponse = {
     score?: number | null;
     summary?: string | null;
     errorMessage?: string | null;
+    generationCount?: number;
     simulatedVotes?: any;
     personaFeedback?: any;
     sources?: any;

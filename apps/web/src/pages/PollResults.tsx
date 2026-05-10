@@ -54,6 +54,8 @@ const PollResults = () => {
     id && user?.isPremium ? id : ""
   );
 
+  const generationLimitReached = (aiStatus?.generationCount || 0) >= 3;
+
   const handleUpgradeToPremium = async () => {
     setUpgrading(true);
     try {
@@ -465,13 +467,16 @@ const PollResults = () => {
               {!aiStatus ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Launch a premium AI validation run for this poll and monitor progress.
+                    Launch a premium AI validation run for this poll and monitor progress. 
+                    <span className="block mt-1 text-xs font-medium text-primary/70">Usage: {aiStatus?.generationCount || 0}/3 runs used</span>
                   </p>
-                  <Button className="mt-4" onClick={handleAiValidate} disabled={aiSubmitting}>
+                  <Button className="mt-4" onClick={handleAiValidate} disabled={aiSubmitting || generationLimitReached}>
                     {aiSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...
                       </>
+                    ) : generationLimitReached ? (
+                      "Generation Limit Reached (3/3)"
                     ) : (
                       "Validate with AI"
                     )}
@@ -541,12 +546,15 @@ const PollResults = () => {
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                       <span className="font-medium text-green-700">AI Validation Complete!</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Your synthetic audience analysis is ready. Detailed results coming soon.
+                    <p className="text-sm text-muted-foreground flex flex-col">
+                      <span>Your synthetic audience analysis is ready. Detailed results coming soon.</span>
+                      <span className="text-xs font-semibold mt-1 text-green-800/60">Credits used: {aiStatus?.generationCount || 1}/3</span>
                     </p>
-                    <Button size="sm" variant="outline" className="mt-3 bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20 hover:text-green-800" onClick={handleAiValidate} disabled={aiSubmitting}>
+                    <Button size="sm" variant="outline" className="mt-3 bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20 hover:text-green-800" onClick={handleAiValidate} disabled={aiSubmitting || generationLimitReached}>
                       {aiSubmitting ? (
                         <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Restarting...</>
+                      ) : generationLimitReached ? (
+                        <>Limit Reached (3/3)</>
                       ) : (
                         <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Regenerate Analysis</>
                       )}
@@ -649,12 +657,15 @@ const PollResults = () => {
                     {aiStatus?.errorMessage 
                       ? `Error: ${aiStatus.errorMessage}` 
                       : "Please try again later or contact support if the problem persists."}
+                    <span className="block mt-1 text-xs font-semibold">Remaining tries: {3 - Math.min(3, (aiStatus?.generationCount || 0))} / 3</span>
                   </p>
-                  <Button className="mt-4 w-full sm:w-auto" variant="destructive" onClick={handleAiValidate} disabled={aiSubmitting}>
+                  <Button className="mt-4 w-full sm:w-auto" variant="destructive" onClick={handleAiValidate} disabled={aiSubmitting || generationLimitReached}>
                     {aiSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Retrying...
                       </>
+                    ) : generationLimitReached ? (
+                      "Max Generation Limit Reached (3/3)"
                     ) : (
                       "Retry Validation"
                     )}

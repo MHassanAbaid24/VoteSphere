@@ -396,19 +396,34 @@ export const startAiValidation = async (pollId: string, userId: string) => {
     throw new Error('Poll not found');
   }
 
+  // Check if limit exceeded BEFORE resetting to pending
+  const existingInsight = await prisma.aiInsight.findUnique({
+    where: { pollId },
+    select: { generationCount: true }
+  });
+
+  if (existingInsight && existingInsight.generationCount >= 3) {
+    throw new Error('You have reached the maximum limit of 3 AI validations for this poll.');
+  }
+
   const aiInsight = await prisma.aiInsight.upsert({
     where: { pollId },
     create: {
       pollId,
       status: 'PENDING',
+      generationCount: 1,
     },
     update: {
       status: 'PENDING',
       errorMessage: null,
+      generationCount: {
+        increment: 1
+      }
     },
     select: {
       status: true,
       updatedAt: true,
+      generationCount: true
     },
   });
 
@@ -532,6 +547,7 @@ export const getAiValidationStatus = async (pollId: string, userId: string) => {
       personaFeedback: true,
       sources: true,
       errorMessage: true,
+      generationCount: true,
       updatedAt: true,
     },
   });
