@@ -3,7 +3,7 @@ FROM oven/bun:1-alpine AS base
 WORKDIR /app
 
 # Copy dependency files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/types/package.json ./packages/types/
 COPY packages/zod-schemas/package.json ./packages/zod-schemas/
