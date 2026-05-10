@@ -5,7 +5,9 @@ WORKDIR /app
 # Copy dependency files
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
 COPY packages/zod-schemas/package.json ./packages/zod-schemas/
 
 # Install dependencies in non-root environment
