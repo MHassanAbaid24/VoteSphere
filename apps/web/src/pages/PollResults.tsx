@@ -682,9 +682,6 @@ const PollResults = () => {
               <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">
                 <Share2 className="mr-2 h-4 w-4" /> Share Results
               </Button>
-              <Button asChild className="flex-1" size="lg">
-                <Link to={`/poll/${poll.id}`}>Vote Again</Link>
-              </Button>
             </div>
           </CardContent>
         </Card>
