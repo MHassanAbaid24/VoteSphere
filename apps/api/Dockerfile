@@ -1,6 +1,7 @@
 # Production dockerfile for API
 FROM oven/bun:1-alpine AS base
 WORKDIR /app
+RUN apk add --no-cache openssl
 
 # Copy dependency files
 COPY package.json bun.lock ./
