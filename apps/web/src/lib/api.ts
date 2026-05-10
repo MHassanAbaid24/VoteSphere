@@ -4,8 +4,15 @@ import { apiClient } from "./httpClient";
 export type AiInsightStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 
 export type AiInsightResponse = {
+    id?: string;
     status: AiInsightStatus;
     updatedAt?: string;
+    score?: number | null;
+    summary?: string | null;
+    errorMessage?: string | null;
+    simulatedVotes?: any;
+    personaFeedback?: any;
+    sources?: any;
 } | null;
 
 const mapPoll = (p: any): Poll => ({

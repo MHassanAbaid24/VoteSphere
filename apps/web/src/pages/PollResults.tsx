@@ -477,7 +477,7 @@ const PollResults = () => {
                     )}
                   </Button>
                 </>
-              ) : aiStatus === "PENDING" || aiStatus === "PROCESSING" ? (
+              ) : aiStatus?.status === "PENDING" || aiStatus?.status === "PROCESSING" ? (
                 // Glassmorphic loading card
                 <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 backdrop-blur-sm">
                   <div className="space-y-4">
@@ -486,7 +486,7 @@ const PollResults = () => {
                       <div
                         className={cn(
                           "h-full bg-gradient-to-r from-primary to-primary/50 rounded-full transition-all duration-300",
-                          aiStatus === "PENDING" ? "w-1/3 animate-pulse" : "w-2/3 animate-pulse"
+                          aiStatus?.status === "PENDING" ? "w-1/3 animate-pulse" : "w-2/3 animate-pulse"
                         )}
                       />
                     </div>
@@ -494,32 +494,32 @@ const PollResults = () => {
                     {/* Status steps */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        {aiStatus === "PENDING" ? (
+                        {aiStatus?.status === "PENDING" ? (
                           <Clock className="h-4 w-4 text-primary animate-spin" />
                         ) : (
                           <CheckCircle2 className="h-4 w-4 text-primary" />
                         )}
                         <span className={cn(
                           "text-sm font-medium transition-all",
-                          aiStatus !== "PENDING" ? "text-primary" : "text-primary/60 animate-pulse"
+                          aiStatus?.status !== "PENDING" ? "text-primary" : "text-primary/60 animate-pulse"
                         )}>
-                          {aiStatus !== "PENDING" ? "Step 1: Fetching Web Competitors" : "Step 1: Fetching Web Competitors"}
+                          {aiStatus?.status !== "PENDING" ? "Step 1: Fetching Web Competitors" : "Step 1: Fetching Web Competitors"}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {aiStatus === "PROCESSING" ? (
+                        {aiStatus?.status === "PROCESSING" ? (
                           <Clock className="h-4 w-4 text-primary animate-spin" />
-                        ) : aiStatus === "PENDING" ? (
+                        ) : aiStatus?.status === "PENDING" ? (
                           <div className="h-4 w-4 rounded-full border-2 border-primary/20" />
                         ) : (
                           <CheckCircle2 className="h-4 w-4 text-primary" />
                         )}
                         <span className={cn(
                           "text-sm font-medium transition-all",
-                          aiStatus === "PROCESSING" ? "text-primary/60 animate-pulse" : aiStatus === "PENDING" ? "text-muted-foreground" : "text-primary"
+                          aiStatus?.status === "PROCESSING" ? "text-primary/60 animate-pulse" : aiStatus?.status === "PENDING" ? "text-muted-foreground" : "text-primary"
                         )}>
-                          {aiStatus === "PROCESSING" ? "Step 2: Synthesizing Personas" : "Step 2: Synthesizing Personas"}
+                          {aiStatus?.status === "PROCESSING" ? "Step 2: Synthesizing Personas" : "Step 2: Synthesizing Personas"}
                         </span>
                       </div>
 
@@ -530,11 +530,11 @@ const PollResults = () => {
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-3">
-                      {aiStatus === "PENDING" ? "Searching current industry trends..." : "Synthesizing market insights..."}
+                      {aiStatus?.status === "PENDING" ? "Searching current industry trends..." : "Synthesizing market insights..."}
                     </p>
                   </div>
                 </div>
-              ) : aiStatus === "COMPLETED" ? (
+              ) : aiStatus?.status === "COMPLETED" ? (
                 <div className="mt-4 space-y-4">
                   <div className="p-4 rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/5 to-green-500/5 backdrop-blur-sm">
                     <div className="flex items-center gap-2 mb-2">
@@ -547,7 +547,7 @@ const PollResults = () => {
                   </div>
 
                   {/* Sources Section */}
-                  {aiStatus && typeof aiStatus === 'object' && 'sources' in aiStatus && Array.isArray(aiStatus.sources) && aiStatus.sources.length > 0 && (
+                  {aiStatus?.sources && Array.isArray(aiStatus.sources) && aiStatus.sources.length > 0 && (
                     <div className="p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
                       <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                         <BarChart3 className="h-4 w-4 text-primary" /> Verified References & Sources
@@ -573,16 +573,16 @@ const PollResults = () => {
                   )}
 
                   {/* Personas Section */}
-                  {aiStatus && typeof aiStatus === 'object' && 'personaFeedback' in aiStatus && Array.isArray(aiStatus.personaFeedback) && aiStatus.personaFeedback.length > 0 && (
+                  {aiStatus?.personaFeedback && Array.isArray(aiStatus.personaFeedback) && aiStatus.personaFeedback.length > 0 && (
                     <div className="p-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
                       <PersonaCarousel personas={aiStatus.personaFeedback as Array<{ name: string; role: string; quote: string; avatar?: string }>} />
                     </div>
                   )}
 
                   {/* Vote Comparison Section */}
-                  {aiStatus && typeof aiStatus === 'object' && 'simulatedVotes' in aiStatus && 
+                  {aiStatus?.simulatedVotes && 
                    poll && Array.isArray(poll.questions) && poll.questions.length > 0 && 
-                   Object.keys(aiStatus.simulatedVotes as Record<string, unknown>).length > 0 && (
+                   Object.keys(aiStatus.simulatedVotes).length > 0 && (
                     <div className="p-6 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/5 backdrop-blur-sm">
                       <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                         <BarChart3 className="h-5 w-5" /> Real vs. AI Projected Votes
@@ -625,22 +625,33 @@ const PollResults = () => {
                   )}
 
                   {/* Feasibility Score Section */}
-                  {aiStatus && typeof aiStatus === 'object' && 'score' in aiStatus && aiStatus.score && aiStatus.score > 0 && (
+                  {aiStatus?.score && aiStatus.score > 0 && (
                     <FeasibilityScore 
-                      score={aiStatus.score as number} 
-                      summary={aiStatus.summary as string || 'Analysis complete'} 
+                      score={aiStatus.score} 
+                      summary={aiStatus.summary || 'Analysis complete'} 
                     />
                   )}
                 </div>
-              ) : aiStatus === "FAILED" ? (
+              ) : aiStatus?.status === "FAILED" ? (
                 <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-gradient-to-br from-red-500/5 to-red-500/5 backdrop-blur-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="h-5 w-5 text-red-500" />
                     <span className="font-medium text-red-700">Validation Failed</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Please try again later or contact support if the problem persists.
+                    {aiStatus?.errorMessage 
+                      ? `Error: ${aiStatus.errorMessage}` 
+                      : "Please try again later or contact support if the problem persists."}
                   </p>
+                  <Button className="mt-4 w-full sm:w-auto" variant="destructive" onClick={handleAiValidate} disabled={aiSubmitting}>
+                    {aiSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Retrying...
+                      </>
+                    ) : (
+                      "Retry Validation"
+                    )}
+                  </Button>
                 </div>
               ) : null}
             </div>
