@@ -34,6 +34,13 @@ app.use('*', globalLimiter);
 
 app.onError(errorHandler);
 
+// Health Check
+app.get('/', (c) => c.json({ 
+  status: 'ok', 
+  message: 'VoteSphere API', 
+  timestamp: new Date().toISOString() 
+}));
+
 // API v1 Routes
 const v1 = new Hono();
 
