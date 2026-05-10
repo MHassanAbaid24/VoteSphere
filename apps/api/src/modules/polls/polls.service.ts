@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { CreatePollInput, UpdatePollInput } from './polls.schema';
 import { generateSignedUrl } from '../../lib/s3';
@@ -506,9 +507,9 @@ const simulateAiValidationBackground = async (pollId: string) => {
       where: { pollId },
       data: {
         status: 'COMPLETED',
-        sources: sources.length > 0 ? sources : null,
-        personaFeedback: personas.length > 0 ? personas : null,
-        simulatedVotes: Object.keys(analysis.simulatedVotes).length > 0 ? analysis.simulatedVotes : null,
+        sources: sources.length > 0 ? (sources as any) : Prisma.DbNull,
+        personaFeedback: personas.length > 0 ? (personas as any) : Prisma.DbNull,
+        simulatedVotes: Object.keys(analysis.simulatedVotes).length > 0 ? (analysis.simulatedVotes as any) : Prisma.DbNull,
         score: analysis.score || null,
         summary: analysis.summary || null,
         generationCount: { increment: 1 }
