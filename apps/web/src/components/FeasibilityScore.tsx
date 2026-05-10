@@ -25,7 +25,7 @@ export const FeasibilityScore = ({ score, summary }: FeasibilityScoreProps) => {
 
   return (
     <div className={`p-6 rounded-lg border border-primary/20 bg-gradient-to-br ${bgColor} backdrop-blur-sm`}>
-      <h3 className="text-lg font-semibold text-white mb-6">Feasibility Analysis</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-6">Feasibility Analysis</h3>
 
       <div className="flex flex-col items-center gap-6">
         {/* Score Ring */}
@@ -37,9 +37,8 @@ export const FeasibilityScore = ({ score, summary }: FeasibilityScoreProps) => {
               cy="50"
               r="45"
               fill="none"
-              stroke="#ffffff"
+              className="stroke-primary/10"
               strokeWidth="3"
-              opacity="0.1"
             />
             {/* Progress circle */}
             <circle
@@ -60,14 +59,14 @@ export const FeasibilityScore = ({ score, summary }: FeasibilityScoreProps) => {
           {/* Score text in center */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className={`text-4xl font-bold ${scoreColor}`}>{score}</span>
-            <span className="text-xs text-gray-400 mt-1">/ 100</span>
+            <span className="text-xs text-muted-foreground mt-1">/ 100</span>
           </div>
         </div>
 
         {/* Summary */}
         {summary && (
           <div className="w-full">
-            <p className="text-sm text-gray-300 leading-relaxed text-center">{summary}</p>
+            <p className="text-sm text-foreground/80 leading-relaxed text-center">{summary}</p>
           </div>
         )}
       </div>

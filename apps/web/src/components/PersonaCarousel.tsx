@@ -32,11 +32,11 @@ export const PersonaCarousel = ({ personas }: PersonaCarouselProps) => {
 
   return (
     <div className="w-full space-y-4">
-      <h3 className="text-lg font-semibold text-white mb-4">Synthetic Personas</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Synthetic Personas</h3>
 
       <div className="relative">
         {/* Persona Card */}
-        <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 min-h-[280px] flex flex-col justify-between">
+        <div className="backdrop-blur-md bg-primary/5 border border-primary/10 rounded-xl p-6 min-h-[280px] flex flex-col justify-between">
           {/* Avatar and Basic Info */}
           <div className="flex items-start gap-4 mb-4">
             {current.avatar && (
@@ -47,14 +47,14 @@ export const PersonaCarousel = ({ personas }: PersonaCarouselProps) => {
               />
             )}
             <div>
-              <h4 className="text-xl font-bold text-white">{current.name}</h4>
-              <p className="text-sm text-gray-300">{current.role}</p>
+              <h4 className="text-xl font-bold text-foreground">{current.name}</h4>
+              <p className="text-sm text-muted-foreground">{current.role}</p>
             </div>
           </div>
 
           {/* Quote */}
-          <blockquote className="border-l-4 border-blue-400/50 pl-4 py-2">
-            <p className="text-white italic">"{current.quote}"</p>
+          <blockquote className="border-l-4 border-primary/50 pl-4 py-2">
+            <p className="text-foreground italic">"{current.quote}"</p>
           </blockquote>
 
           {/* Pagination Indicator */}
@@ -66,8 +66,8 @@ export const PersonaCarousel = ({ personas }: PersonaCarouselProps) => {
                   onClick={() => setCurrentIndex(idx)}
                   className={`h-2 rounded-full transition-all ${
                     idx === currentIndex
-                      ? 'w-8 bg-blue-400'
-                      : 'w-2 bg-white/30 hover:bg-white/50'
+                      ? 'w-8 bg-primary'
+                      : 'w-2 bg-primary/20 hover:bg-primary/40'
                   }`}
                   aria-label={`Go to persona ${idx + 1}`}
                 />
@@ -81,17 +81,17 @@ export const PersonaCarousel = ({ personas }: PersonaCarouselProps) => {
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 rounded-lg hover:bg-primary/10 transition-colors"
               aria-label="Previous persona"
             >
-              <ChevronLeft className="w-5 h-5 text-white" />
+              <ChevronLeft className="w-5 h-5 text-foreground" />
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 rounded-lg hover:bg-primary/10 transition-colors"
               aria-label="Next persona"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight className="w-5 h-5 text-foreground" />
             </button>
           </>
         )}
@@ -99,7 +99,7 @@ export const PersonaCarousel = ({ personas }: PersonaCarouselProps) => {
 
       {/* Persona Count */}
       {hasMultiple && (
-        <p className="text-center text-sm text-gray-400">
+        <p className="text-center text-sm text-muted-foreground">
           {currentIndex + 1} of {personas.length}
         </p>
       )}
