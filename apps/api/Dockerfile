@@ -18,8 +18,8 @@ RUN bun install --production --no-frozen-lockfile
 FROM base AS builder
 COPY . .
 RUN bun install --no-frozen-lockfile
-RUN bun run build --filter=api
 RUN cd apps/api && bun run prisma:generate
+RUN bun run build --filter=api
 
 # Runner layer
 FROM base AS runner
@@ -31,4 +31,4 @@ COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD ["sh", "-c", "cd apps/api && bun run prisma:generate && bun run prisma:migrate && bun run dist/index.js"]
+CMD ["sh", "-c", "cd apps/api && bun run prisma:migrate && bun run dist/index.js"]
