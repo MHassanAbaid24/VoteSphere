@@ -411,14 +411,10 @@ export const startAiValidation = async (pollId: string, userId: string) => {
     create: {
       pollId,
       status: 'PENDING',
-      generationCount: 1,
     },
     update: {
       status: 'PENDING',
       errorMessage: null,
-      generationCount: {
-        increment: 1
-      }
     },
     select: {
       status: true,
@@ -506,6 +502,7 @@ const simulateAiValidationBackground = async (pollId: string) => {
         simulatedVotes: Object.keys(analysis.simulatedVotes).length > 0 ? analysis.simulatedVotes : null,
         score: analysis.score || null,
         summary: analysis.summary || null,
+        generationCount: { increment: 1 }
       },
     });
   } catch (error) {
