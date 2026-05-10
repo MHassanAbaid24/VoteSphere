@@ -3,6 +3,7 @@ import { prisma } from '../../config/database';
 import { CreatePollInput, UpdatePollInput } from './polls.schema';
 import { generateSignedUrl } from '../../lib/s3';
 import { withCache, invalidateCache } from '../../lib/cache';
+import { checkPollSafety } from '../../services/ai.service';
 
 /**
  * Helper function to convert poll coverImage URL to signed URL if it exists
@@ -22,6 +23,20 @@ const enrichPollsWithSignedUrls = async (polls: any[]) => {
 };
 
 export const createPoll = async (creatorId: string, input: CreatePollInput) => {
+  // Perform synchronous AI safety check BEFORE saving to DB
+  const safetyCheck = await checkPollSafety(
+    input.title,
+    input.description,
+    input.questions.map((q) => ({
+      text: q.text,
+      options: q.options.map((o) => ({ text: o.text })),
+    }))
+  );
+
+  if (!safetyCheck.allowed) {
+    throw new Error(`Poll content rejected by moderation: ${safetyCheck.reason || 'Indecent or invalid content detected.'}`);
+  }
+
   const poll = await prisma.poll.create({
     data: {
       creatorId,
@@ -42,6 +57,11 @@ export const createPoll = async (creatorId: string, input: CreatePollInput) => {
             })),
           },
         })),
+      },
+      moderation: {
+        create: {
+          status: 'APPROVED',
+        },
       },
     },
     include: {

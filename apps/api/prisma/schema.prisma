@@ -160,6 +160,7 @@ model Poll {
   votes         Vote[]
   notifications Notification[]
   aiInsight     AiInsight?
+  moderation    PollModeration?
 
   @@index([creatorId])
   @@index([status, visibility])
@@ -194,6 +195,30 @@ model AiInsight {
 
   @@index([status])
   @@map("ai_insights")
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MANUAL_REVIEW
+}
+
+model PollModeration {
+  id              String           @id @default(cuid())
+  pollId          String           @unique
+  status          ModerationStatus @default(PENDING)
+  retryCount      Int              @default(0)
+  nextRetryAt     DateTime?
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([nextRetryAt])
+  @@map("poll_moderations")
 }
 
 enum PollStatus {
@@ -298,6 +323,7 @@ enum NotificationType {
   COMMENT_RECEIVED
   SYSTEM_ANNOUNCEMENT
   PREMIUM_INSIGHT_READY
+  POLL_REJECTED
 }
 
 // ─────────────────────────────────────────

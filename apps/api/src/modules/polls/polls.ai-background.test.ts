@@ -85,14 +85,14 @@ describe('AI Background Worker', () => {
 
       // Check initial status
       let status = await pollsService.getAiValidationStatus(testPollId, testUserId);
-      expect(status.status).toBe('PENDING');
+      expect(status?.status).toBe('PENDING');
 
       // Wait for transition
       await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Check status transitioned to PROCESSING
       status = await pollsService.getAiValidationStatus(testPollId, testUserId);
-      expect(status.status).toBe('PROCESSING');
+      expect(status?.status).toBe('PROCESSING');
     }
   );
 
@@ -107,14 +107,14 @@ describe('AI Background Worker', () => {
 
       // Check initial status
       let status = await pollsService.getAiValidationStatus(testPollId, testUserId);
-      expect(status.status).toBe('PENDING');
+      expect(status?.status).toBe('PENDING');
 
       // Wait for completion
       await new Promise(resolve => setTimeout(resolve, 10500));
 
       // Check status transitioned to COMPLETED
       status = await pollsService.getAiValidationStatus(testPollId, testUserId);
-      expect(status.status).toBe('COMPLETED');
+      expect(status?.status).toBe('COMPLETED');
     }
   );
 });

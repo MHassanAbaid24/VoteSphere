@@ -332,3 +332,107 @@ Ensure the simulatedVotes object matches the structure above. CRITICAL: Use the 
     throw error;
   }
 };
+
+export interface PollSafetyCheck {
+  allowed: boolean;
+  reason: string | null;
+}
+
+/**
+ * Performs synchronous moderation of poll content using Gemini API.
+ * Verifies that the title, description, and questions satisfy community guidelines.
+ */
+export const checkPollSafety = async (
+  pollTitle: string,
+  pollDescription: string,
+  questions: Array<{ text: string; options: Array<{ text: string }> }>
+): Promise<PollSafetyCheck> => {
+  if (!env.GEMINI_API_KEY) {
+    console.warn('Gemini API key not configured. Skipping safety check.');
+    return { allowed: true, reason: null };
+  }
+
+  try {
+    const questionsContext = questions
+      .map((q, i) => `Q${i + 1}: ${q.text}\nOptions: ${q.options.map((o) => o.text).join(', ')}`)
+      .join('\n\n');
+
+    const prompt = `Analyze the following poll content for compliance with community standards. Reject polls containing hate speech, harassment, explicitly pornographic content, extreme violence, illegal activities, or purely gibberish/nonsense that has no conceptual meaning.
+    
+Poll Title: ${pollTitle}
+Description: ${pollDescription}
+
+Questions:
+${questionsContext}
+
+Determine if this content should be allowed on the platform. Provide a specific, brief reason only if rejected.
+
+Return a JSON object with:
+{
+  "allowed": boolean,
+  "reason": "string | null"
+}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 500,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Unknown');
+      throw new Error(`Gemini API error during safety check: ${response.status} - ${errorBody}`);
+    }
+
+    const data = await response.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+
+    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textContent) {
+      throw new Error('Gemini returned no safety analysis candidates.');
+    }
+
+    let safetyResult: any;
+    try {
+      safetyResult = JSON.parse(textContent);
+    } catch (_e) {
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          safetyResult = JSON.parse(jsonMatch[0]);
+        } catch (__e) {
+          throw new Error('Failed to parse fallback JSON for safety check.');
+        }
+      } else {
+        throw new Error('Output was not valid JSON format for safety check.');
+      }
+    }
+
+    return {
+      allowed: !!safetyResult.allowed,
+      reason: safetyResult.reason || null,
+    };
+  } catch (error) {
+    console.error('Error performing synchronous poll safety check:', error);
+    throw error;
+  }
+};
