@@ -2,10 +2,8 @@ import { Google, GitHub } from 'arctic';
 import { env } from './env';
 
 // Determine backend callback URL for Google/GitHub OAuth consent redirects
-// Default to standard local dev if not explicitly customized
-const backendBaseUrl = process.env.NODE_ENV === 'production' 
-  ? 'https://api.votesphere.com'
-  : 'http://localhost:3000';
+// Dynamically defaults to BACKEND_URL from environment
+const backendBaseUrl = env.BACKEND_URL;
 
 export const googleOAuth = new Google(
   env.GOOGLE_CLIENT_ID || 'mock',
