@@ -32,4 +32,5 @@ docker-compose.yml
 .turbo
 
 issues
-ralphprompt_to_AI.txt
+ralph
+prompt_to_AI.txt
