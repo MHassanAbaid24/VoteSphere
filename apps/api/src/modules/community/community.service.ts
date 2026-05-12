@@ -42,11 +42,6 @@ export const getFeed = async (filters: { page?: number; limit?: number; userId?:
             email: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
       },
     }),
     prisma.poll.count({
@@ -60,13 +55,11 @@ export const getFeed = async (filters: { page?: number; limit?: number; userId?:
 
   // 3. Score and sort polls if preferredCategories are specified
   const enrichedPolls = polls.map((p) => {
-    const totalVotes = p._count.votes;
     const isPreferred = p.category && preferredCategories.includes(p.category);
     // Score formula: matching preferred category gets 2.5x score boost
-    const score = (totalVotes + 1) * (isPreferred ? 2.5 : 1.0);
+    const score = (p.totalVotes + 1) * (isPreferred ? 2.5 : 1.0);
     return {
       ...p,
-      totalVotes,
       score,
     };
   });
@@ -103,9 +96,7 @@ export const getTrending = async (limit: number = 10) => {
       },
       take: limit,
       orderBy: {
-        votes: {
-          _count: 'desc',
-        },
+        totalVotes: 'desc',
       },
       include: {
         questions: {
@@ -120,18 +111,10 @@ export const getTrending = async (limit: number = 10) => {
             email: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
       },
     });
 
-    return polls.map((p) => ({
-      ...p,
-      totalVotes: p._count.votes,
-    }));
+    return polls;
   });
 };
 
@@ -181,21 +164,13 @@ export const search = async (filters: {
             email: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
       },
     }),
     prisma.poll.count({ where }),
   ]);
 
   return {
-    polls: polls.map((p) => ({
-      ...p,
-      totalVotes: p._count.votes,
-    })),
+    polls,
     pagination: {
       total,
       page,

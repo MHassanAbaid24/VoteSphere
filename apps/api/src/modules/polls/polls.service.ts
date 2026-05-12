@@ -288,20 +288,12 @@ export const getMyPolls = async (creatorId: string, filters: {
             options: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
       },
     }),
     prisma.poll.count({ where }),
   ]);
 
-  const enrichedPolls = await enrichPollsWithSignedUrls(polls.map(p => ({
-    ...p,
-    totalVotes: p._count.votes,
-  })));
+  const enrichedPolls = await enrichPollsWithSignedUrls(polls);
 
   return {
     polls: enrichedPolls,
@@ -392,9 +384,7 @@ export const getFeaturedPoll = async () => {
         deletedAt: null,
       },
       orderBy: {
-        votes: {
-          _count: 'desc',
-        },
+        totalVotes: 'desc',
       },
       include: {
         questions: {
@@ -402,22 +392,14 @@ export const getFeaturedPoll = async () => {
             options: true,
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
       },
     });
 
-    const poll = polls.find((p) => p._count.votes >= 3);
+    const poll = polls.find((p) => p.totalVotes >= 3);
 
     if (!poll) return null;
 
-    const enrichedPoll = await enrichPollWithSignedUrl({
-      ...poll,
-      totalVotes: poll._count.votes,
-    });
+    const enrichedPoll = await enrichPollWithSignedUrl(poll);
 
     return enrichedPoll;
   });
