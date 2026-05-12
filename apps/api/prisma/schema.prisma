@@ -28,10 +28,11 @@ model User {
   polls           Poll[]
   votes           Vote[]
   notifications   Notification[]
-  refreshTokens   RefreshToken[]
-  oauthAccounts   OAuthAccount[]
-  preferences     UserPreferences?
-  demographicInfo UserDemographic?
+  refreshTokens       RefreshToken[]
+  oauthAccounts       OAuthAccount[]
+  passwordResetTokens PasswordResetToken[]
+  preferences         UserPreferences?
+  demographicInfo     UserDemographic?
 
   @@index([email])
   @@index([createdAt])
@@ -99,7 +100,10 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime @default(now())
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([token])
+  @@index([userId])
   @@map("password_reset_tokens")
 }
 
@@ -155,7 +159,7 @@ model Poll {
   deletedAt   DateTime?   // soft delete
 
   // Relations
-  creator       User           @relation(fields: [creatorId], references: [id])
+  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   questions     Question[]
   votes         Vote[]
   notifications Notification[]
@@ -280,10 +284,10 @@ model Vote {
   userId     String
   createdAt  DateTime @default(now())
 
-  poll     Poll       @relation(fields: [pollId], references: [id])
-  question Question   @relation(fields: [questionId], references: [id])
-  option   PollOption @relation(fields: [optionId], references: [id])
-  user     User       @relation(fields: [userId], references: [id])
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  question Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // A user can only vote once per question in a poll
   @@unique([userId, questionId])
