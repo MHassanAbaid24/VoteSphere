@@ -46,6 +46,7 @@ export const fetchTavilySearch = async (query: string): Promise<TavilySource[]> 
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         api_key: env.TAVILY_API_KEY,
         query,
@@ -126,6 +127,7 @@ Generate personas that represent different perspectives and demographics relevan
         'Content-Type': 'application/json',
         'x-goog-api-key': env.GEMINI_API_KEY,
       },
+      signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         contents: [
           {
@@ -264,6 +266,7 @@ Ensure the simulatedVotes object matches the structure above. CRITICAL: Use the 
         'Content-Type': 'application/json',
         'x-goog-api-key': env.GEMINI_API_KEY,
       },
+      signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         contents: [
           {
@@ -379,6 +382,7 @@ Return a JSON object with:
         'Content-Type': 'application/json',
         'x-goog-api-key': env.GEMINI_API_KEY,
       },
+      signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         contents: [
           {

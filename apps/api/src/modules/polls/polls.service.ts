@@ -577,5 +577,37 @@ export const getAiValidationStatus = async (pollId: string, userId: string) => {
     },
   });
 
+  if (!aiInsight) {
+    return null;
+  }
+
+  // Self-Healing: If task stuck in progress for > 5 mins, assume worker died and fail it.
+  const STUCK_THRESHOLD_MS = 5 * 60 * 1000;
+  const isStuck =
+    (aiInsight.status === 'PENDING' || aiInsight.status === 'PROCESSING') &&
+    Date.now() - new Date(aiInsight.updatedAt).getTime() > STUCK_THRESHOLD_MS;
+
+  if (isStuck) {
+    return prisma.aiInsight.update({
+      where: { id: aiInsight.id },
+      data: {
+        status: 'FAILED',
+        errorMessage: 'Background worker was abandoned (e.g., server restart) or timed out. You can safely retry validation.',
+      },
+      select: {
+        id: true,
+        status: true,
+        score: true,
+        summary: true,
+        simulatedVotes: true,
+        personaFeedback: true,
+        sources: true,
+        errorMessage: true,
+        generationCount: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   return aiInsight;
 };
